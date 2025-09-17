@@ -1,3 +1,4 @@
+!/meta-myapp*/
 *.pyc
 *.pyo
 /*.patch

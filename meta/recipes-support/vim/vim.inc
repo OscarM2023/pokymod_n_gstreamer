@@ -12,7 +12,7 @@ RSUGGESTS:${PN} = "diffutils"
 LICENSE = "Vim"
 LIC_FILES_CHKSUM = "file://LICENSE;md5=d1a651ab770b45d41c0f8cb5a8ca930e"
 
-SRC_URI = "git://github.com/vim/vim.git;branch=master;protocol=https;tag=v${PV} \
+SRC_URI = "git://github.com/vim/vim.git;branch=master;protocol=https \
            file://disable_acl_header_check.patch \
            file://0001-src-Makefile-improve-reproducibility.patch \
            file://no-path-adjust.patch \
@@ -25,6 +25,8 @@ SRCREV = "3e152c76adb9542af86760786d42a0beffe5354b"
 UPSTREAM_CHECK_GITTAGREGEX = "(?P<pver>\d+\.\d+)\.0"
 # Ignore that the upstream version .z in x.y.z is always newer
 UPSTREAM_VERSION_UNKNOWN = "1"
+
+S = "${WORKDIR}/git"
 
 VIMDIR = "vim${@d.getVar('PV').split('.')[0]}${@d.getVar('PV').split('.')[1]}"
 

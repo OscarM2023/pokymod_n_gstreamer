@@ -372,10 +372,7 @@ class Wget(FetchMethod):
 
             try:
                 parts = urllib.parse.urlparse(ud.url.split(";")[0])
-                if parts.query:
-                    uri = "{}://{}{}?{}".format(parts.scheme, parts.netloc, parts.path, parts.query)
-                else:
-                    uri = "{}://{}{}".format(parts.scheme, parts.netloc, parts.path)
+                uri = "{}://{}{}".format(parts.scheme, parts.netloc, parts.path)
                 r = urllib.request.Request(uri)
                 r.get_method = lambda: "HEAD"
                 # Some servers (FusionForge, as used on Alioth) require that the

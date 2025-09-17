@@ -90,7 +90,7 @@ def disable_heartbeat():
 # In long running code, this function should be called periodically
 # to check if we should exit due to an interuption (.e.g Ctrl+C from the UI)
 #
-def check_for_interrupts():
+def check_for_interrupts(d):
     global _should_exit
     if _should_exit.is_set():
         bb.warn("Exiting due to interrupt.")
@@ -236,12 +236,9 @@ def fire(event, d):
         # If messages have been queued up, clear the queue
         global _uiready, ui_queue
         if _uiready and ui_queue:
-            with bb.utils.lock_timeout_nocheck(_thread_lock):
-                queue = ui_queue
-                ui_queue = []
-            for queue_event in queue:
+            for queue_event in ui_queue:
                 fire_ui_handlers(queue_event, d)
-
+            ui_queue = []
         fire_ui_handlers(event, d)
 
 def fire_from_worker(event, d):
@@ -432,16 +429,6 @@ class MultiConfigParsed(Event):
 class RecipeEvent(Event):
     def __init__(self, fn):
         self.fn = fn
-        Event.__init__(self)
-
-class RecipePreDeferredInherits(RecipeEvent):
-    """
-    Called before deferred inherits are processed so code can snoop on class extensions for example
-    Limitations: It won't see inherits of inherited classes and the data is unexpanded
-    """
-    def __init__(self, fn, inherits):
-        self.fn = fn
-        self.inherits = inherits
         Event.__init__(self)
 
 class RecipePreFinalise(RecipeEvent):

@@ -32,12 +32,13 @@ SRC_URI = "${SOURCEFORGE_MIRROR}/expect/Expect/${PV}/${BPN}${PV}.tar.gz \
            file://run-ptest \
            file://0001-Replace-tclsh-with-tclsh8-in-the-scripts-used-in-the.patch \
            "
+SRC_URI[md5sum] = "00fce8de158422f5ccd2666512329bd2"
 SRC_URI[sha256sum] = "49a7da83b0bdd9f46d04a04deec19c7767bb9a323e40c4781f89caf760b92c34"
 
 UPSTREAM_CHECK_URI = "http://sourceforge.net/projects/expect/files/Expect/"
 UPSTREAM_CHECK_REGEX = "/Expect/(?P<pver>(\d+[\.\-_]*)+)/"
 
-S = "${UNPACKDIR}/${BPN}${PV}"
+S = "${WORKDIR}/${BPN}${PV}"
 
 EXTRA_AUTORECONF += "--exclude=aclocal"
 

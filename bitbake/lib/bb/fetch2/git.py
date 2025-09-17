@@ -182,7 +182,7 @@ class Git(FetchMethod):
         ud.bareclone = ud.parm.get("bareclone","0") == "1"
         if ud.bareclone:
             ud.nocheckout = 1
-
+  
         ud.unresolvedrev = ""
         ud.branch = ud.parm.get("branch", "")
         if not ud.branch and not ud.nobranch:
@@ -199,8 +199,6 @@ class Git(FetchMethod):
         ud.shallow_skip_fast = False
         ud.shallow = d.getVar("BB_GIT_SHALLOW") == "1"
         ud.shallow_extra_refs = (d.getVar("BB_GIT_SHALLOW_EXTRA_REFS") or "").split()
-        if 'tag' in ud.parm:
-            ud.shallow_extra_refs.append("refs/tags/" + ud.parm['tag'])
 
         depth_default = d.getVar("BB_GIT_SHALLOW_DEPTH")
         if depth_default is not None:
@@ -323,18 +321,13 @@ class Git(FetchMethod):
             return True
         if not self._contains_ref(ud, d, ud.name, ud.clonedir):
             return True
-        if 'tag' in ud.parm and not self._contains_ref(ud, d, ud.name, ud.clonedir, tag=True):
-            return True
         return False
 
     def lfs_need_update(self, ud, d):
-        if not self._need_lfs(ud):
-            return False
-
         if self.clonedir_need_update(ud, d):
             return True
 
-        if not self._lfs_objects_downloaded(ud, d, ud.clonedir):
+        if not self._lfs_objects_downloaded(ud, d, ud.name, ud.clonedir):
             return True
         return False
 
@@ -351,13 +344,6 @@ class Git(FetchMethod):
 
     def tarball_need_update(self, ud):
         return ud.write_tarballs and not os.path.exists(ud.fullmirror)
-
-    def update_mirror_links(self, ud, origud):
-        super().update_mirror_links(ud, origud)
-        # When using shallow mode, add a symlink to the original fullshallow
-        # path to ensure a valid symlink even in the `PREMIRRORS` case
-        if ud.shallow and not os.path.exists(origud.fullshallow):
-            self.ensure_symlink(ud.localpath, origud.fullshallow)
 
     def try_premirror(self, ud, d):
         # If we don't do this, updating an existing checkout with only premirrors
@@ -493,14 +479,35 @@ class Git(FetchMethod):
                 raise bb.fetch2.FetchError("Unable to find revision %s even from upstream" % missing_rev)
 
         if self.lfs_need_update(ud, d):
-            self.lfs_fetch(ud, d, ud.clonedir, ud.revision)
+            # Unpack temporary working copy, use it to run 'git checkout' to force pre-fetching
+            # of all LFS blobs needed at the srcrev.
+            #
+            # It would be nice to just do this inline here by running 'git-lfs fetch'
+            # on the bare clonedir, but that operation requires a working copy on some
+            # releases of Git LFS.
+            with tempfile.TemporaryDirectory(dir=d.getVar('DL_DIR')) as tmpdir:
+                # Do the checkout. This implicitly involves a Git LFS fetch.
+                Git.unpack(self, ud, tmpdir, d)
+
+                # Scoop up a copy of any stuff that Git LFS downloaded. Merge them into
+                # the bare clonedir.
+                #
+                # As this procedure is invoked repeatedly on incremental fetches as
+                # a recipe's SRCREV is bumped throughout its lifetime, this will
+                # result in a gradual accumulation of LFS blobs in <ud.clonedir>/lfs
+                # corresponding to all the blobs reachable from the different revs
+                # fetched across time.
+                #
+                # Only do this if the unpack resulted in a .git/lfs directory being
+                # created; this only happens if at least one blob needed to be
+                # downloaded.
+                if os.path.exists(os.path.join(ud.destdir, ".git", "lfs")):
+                    runfetchcmd("tar -cf - lfs | tar -xf - -C %s" % ud.clonedir, d, workdir="%s/.git" % ud.destdir)
 
     def lfs_fetch(self, ud, d, clonedir, revision, fetchall=False, progresshandler=None):
         """Helper method for fetching Git LFS data"""
         try:
-            if self._need_lfs(ud) and self._contains_lfs(ud, d, clonedir) and len(revision):
-                self._ensure_git_lfs(d, ud)
-
+            if self._need_lfs(ud) and self._contains_lfs(ud, d, clonedir) and self._find_git_lfs(d) and len(revision):
                 # Using worktree with the revision because .lfsconfig may exists
                 worktree_add_cmd = "%s worktree add wt %s" % (ud.basecmd, revision)
                 runfetchcmd(worktree_add_cmd, d, log=progresshandler, workdir=clonedir)
@@ -550,7 +557,7 @@ class Git(FetchMethod):
             try:
                 self.clone_shallow_local(ud, shallowclone, d)
             except:
-                logger.warning("Fast shallow clone failed, try to skip fast mode now.")
+                logger.warning("Fash shallow clone failed, try to skip fast mode now.")
                 bb.utils.remove(tempdir, recurse=True)
                 os.mkdir(tempdir)
                 ud.shallow_skip_fast = True
@@ -627,8 +634,9 @@ class Git(FetchMethod):
 
         runfetchcmd(fetch_cmd, d, workdir=dest)
         runfetchcmd("%s update-ref %s %s" % (ud.basecmd, ref, revision), d, workdir=dest)
-        # Fetch Git LFS data
-        self.lfs_fetch(ud, d, dest, ud.revision)
+        # Fetch Git LFS data for fast shallow clones
+        if not ud.shallow_skip_fast:
+            self.lfs_fetch(ud, d, dest, ud.revision)
 
         # Apply extra ref wildcards
         all_refs_remote = runfetchcmd("%s ls-remote origin 'refs/*'" % ud.basecmd, \
@@ -637,6 +645,8 @@ class Git(FetchMethod):
         for line in all_refs_remote:
             all_refs.append(line.split()[-1])
         extra_refs = []
+        if 'tag' in ud.parm:
+            extra_refs.append(ud.parm['tag'])
         for r in ud.shallow_extra_refs:
             if not ud.bareclone:
                 r = r.replace('refs/heads/', 'refs/remotes/origin/')
@@ -648,7 +658,7 @@ class Git(FetchMethod):
                 extra_refs.append(r)
 
         for ref in extra_refs:
-            ref_fetch = ref.replace('refs/heads/', '').replace('refs/remotes/origin/', '').replace('refs/tags/', '')
+            ref_fetch = os.path.basename(ref)
             runfetchcmd("%s fetch origin --depth 1 %s" % (ud.basecmd, ref_fetch), d, workdir=dest)
             revision = runfetchcmd("%s rev-parse FETCH_HEAD" % ud.basecmd, d, workdir=dest)
             runfetchcmd("%s update-ref %s %s" % (ud.basecmd, ref, revision), d, workdir=dest)
@@ -662,7 +672,7 @@ class Git(FetchMethod):
         subdir = ud.parm.get("subdir")
         subpath = ud.parm.get("subpath")
         readpathspec = ""
-        def_destsuffix = (d.getVar("BB_GIT_DEFAULT_DESTSUFFIX") or "git") + "/"
+        def_destsuffix = "git/"
 
         if subpath:
             readpathspec = ":%s" % subpath
@@ -720,22 +730,17 @@ class Git(FetchMethod):
             output = runfetchcmd("%s rev-list -n 1 %s" % (ud.basecmd, ud.parm['tag']), d, workdir=destdir)
             output = output.strip()
             if output != ud.revision:
-                # It is possible ud.revision is the revision on an annotated tag which won't match the output of rev-list
-                # If it resolves to the same thing there isn't a problem.
-                output2 = runfetchcmd("%s rev-list -n 1 %s" % (ud.basecmd, ud.revision), d, workdir=destdir)
-                output2 = output2.strip()
-                if output != output2:
-                    raise bb.fetch2.FetchError("The revision the git tag '%s' resolved to didn't match the SRCREV in use (%s vs %s)" % (ud.parm['tag'], output, ud.revision), ud.url)
+                raise bb.fetch2.FetchError("The revision the git tag '%s' resolved to didn't match the SRCREV in use (%s vs %s)" % (ud.parm['tag'], output, ud.revision), ud.url)
 
         repourl = self._get_repo_url(ud)
         runfetchcmd("%s remote set-url origin %s" % (ud.basecmd, shlex.quote(repourl)), d, workdir=destdir)
 
         if self._contains_lfs(ud, d, destdir):
-            if not need_lfs:
+            if need_lfs and not self._find_git_lfs(d):
+                raise bb.fetch2.FetchError("Repository %s has LFS content, install git-lfs on host to download (or set lfs=0 to ignore it)" % (repourl))
+            elif not need_lfs:
                 bb.note("Repository %s has LFS content but it is not being fetched" % (repourl))
             else:
-                self._ensure_git_lfs(d, ud)
-
                 runfetchcmd("%s lfs install --local" % ud.basecmd, d, workdir=destdir)
 
         if not ud.nocheckout:
@@ -777,16 +782,14 @@ class Git(FetchMethod):
     def supports_srcrev(self):
         return True
 
-    def _contains_ref(self, ud, d, name, wd, tag=False):
+    def _contains_ref(self, ud, d, name, wd):
         cmd = ""
-        git_ref_name = 'refs/tags/%s' % ud.parm['tag'] if tag else ud.revision
-
         if ud.nobranch:
             cmd = "%s log --pretty=oneline -n 1 %s -- 2> /dev/null | wc -l" % (
-                ud.basecmd, git_ref_name)
+                ud.basecmd, ud.revision)
         else:
             cmd =  "%s branch --contains %s --list %s 2> /dev/null | wc -l" % (
-                ud.basecmd, git_ref_name, ud.branch)
+                ud.basecmd, ud.revision, ud.branch)
         try:
             output = runfetchcmd(cmd, d, quiet=True, workdir=wd)
         except bb.fetch2.FetchError:
@@ -795,15 +798,13 @@ class Git(FetchMethod):
             raise bb.fetch2.FetchError("The command '%s' gave output with more then 1 line unexpectedly, output: '%s'" % (cmd, output))
         return output.split()[0] != "0"
 
-    def _lfs_objects_downloaded(self, ud, d, wd):
+    def _lfs_objects_downloaded(self, ud, d, name, wd):
         """
         Verifies whether the LFS objects for requested revisions have already been downloaded
         """
         # Bail out early if this repository doesn't use LFS
-        if not self._contains_lfs(ud, d, wd):
+        if not self._need_lfs(ud) or not self._contains_lfs(ud, d, wd):
             return True
-
-        self._ensure_git_lfs(d, ud)
 
         # The Git LFS specification specifies ([1]) the LFS folder layout so it should be safe to check for file
         # existence.
@@ -833,8 +834,18 @@ class Git(FetchMethod):
         """
         Check if the repository has 'lfs' (large file) content
         """
-        cmd = "%s grep '^[^#].*lfs' %s:.gitattributes | wc -l" % (
-            ud.basecmd, ud.revision)
+
+        if ud.nobranch:
+            # If no branch is specified, use the current git commit
+            refname = self._build_revision(ud, d, ud.name)
+        elif wd == ud.clonedir:
+            # The bare clonedir doesn't use the remote names; it has the branch immediately.
+            refname = ud.branch
+        else:
+            refname = "origin/%s" % ud.branch
+
+        cmd = "%s grep lfs %s:.gitattributes | wc -l" % (
+            ud.basecmd, refname)
 
         try:
             output = runfetchcmd(cmd, d, quiet=True, workdir=wd)
@@ -844,14 +855,11 @@ class Git(FetchMethod):
             pass
         return False
 
-    def _ensure_git_lfs(self, d, ud):
+    def _find_git_lfs(self, d):
         """
-        Ensures that git-lfs is available, raising a FetchError if it isn't.
+        Return True if git-lfs can be found, False otherwise.
         """
-        if shutil.which("git-lfs", path=d.getVar('PATH')) is None:
-            raise bb.fetch2.FetchError(
-                "Repository %s has LFS content, install git-lfs on host to download (or set lfs=0 "
-                "to ignore it)" % self._get_repo_url(ud))
+        return shutil.which("git-lfs", path=d.getVar('PATH')) is not None
 
     def _get_repo_url(self, ud):
         """
@@ -859,7 +867,7 @@ class Git(FetchMethod):
         """
         # Note that we do not support passwords directly in the git urls. There are several
         # reasons. SRC_URI can be written out to things like buildhistory and people don't
-        # want to leak passwords like that. Its also all too easy to share metadata without
+        # want to leak passwords like that. Its also all too easy to share metadata without 
         # removing the password. ssh keys, ~/.netrc and ~/.ssh/config files can be used as
         # alternatives so we will not take patches adding password support here.
         if ud.user:
@@ -983,7 +991,7 @@ class Git(FetchMethod):
         Return a sortable revision number by counting commits in the history
         Based on gitpkgv.bblass in meta-openembedded
         """
-        rev = ud.revision
+        rev = self._build_revision(ud, d, name)
         localpath = ud.localpath
         rev_file = os.path.join(localpath, "oe-gitpkgv_" + rev)
         if not os.path.exists(localpath):

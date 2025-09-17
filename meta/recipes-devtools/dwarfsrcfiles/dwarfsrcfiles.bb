@@ -8,7 +8,8 @@ BBCLASSEXTEND = "native"
 DEPENDS = "elfutils"
 DEPENDS:append:libc-musl = " argp-standalone"
 
-S = "${UNPACKDIR}"
+S = "${WORKDIR}/sources"
+UNPACKDIR = "${S}"
 
 do_compile () {
 	${CC} ${CFLAGS} ${LDFLAGS} -o dwarfsrcfiles ${S}/dwarfsrcfiles.c -lelf -ldw

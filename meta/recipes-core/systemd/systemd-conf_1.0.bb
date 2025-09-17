@@ -21,7 +21,8 @@ SRC_URI = "\
     file://wired.network \
 "
 
-S = "${UNPACKDIR}"
+S = "${WORKDIR}/sources"
+UNPACKDIR = "${S}"
 
 do_install() {
 	install -D -m0644 ${S}/journald.conf ${D}${systemd_unitdir}/journald.conf.d/00-${PN}.conf

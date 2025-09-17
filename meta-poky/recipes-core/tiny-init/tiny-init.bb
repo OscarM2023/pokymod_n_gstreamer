@@ -11,7 +11,8 @@ SRC_URI = "file://init \
 	   file://rc.local.sample \
 	  "
 
-S = "${UNPACKDIR}"
+S = "${WORKDIR}/sources"
+UNPACKDIR = "${S}"
 
 do_configure() {
 	:

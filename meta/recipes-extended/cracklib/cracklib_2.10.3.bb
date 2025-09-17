@@ -13,7 +13,7 @@ SRC_URI = "git://github.com/cracklib/cracklib;protocol=https;branch=main \
            "
 
 SRCREV = "e73d5db1789d198b5f9ec44b68b9c775c3e6c042"
-S = "${UNPACKDIR}/${BP}/src"
+S = "${WORKDIR}/git/src"
 
 inherit autotools gettext
 

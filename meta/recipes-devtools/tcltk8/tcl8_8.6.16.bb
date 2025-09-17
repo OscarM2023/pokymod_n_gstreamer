@@ -32,7 +32,7 @@ SRC_URI:class-native = "${BASE_SRC_URI}"
 UPSTREAM_CHECK_URI = "https://www.tcl.tk/software/tcltk/download.html"
 UPSTREAM_CHECK_REGEX = "tcl(?P<pver>8(\.\d+)+)-src"
 
-S = "${UNPACKDIR}/tcl${PV}"
+S = "${WORKDIR}/tcl${PV}"
 
 VER = "${PV}"
 

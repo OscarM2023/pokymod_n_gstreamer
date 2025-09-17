@@ -19,22 +19,6 @@ PACKAGECONFIG_CONFARGS ??= ""
 
 inherit metadata_scm
 
-PREFERRED_TOOLCHAIN_TARGET ??= "gcc"
-PREFERRED_TOOLCHAIN_NATIVE ??= "gcc"
-PREFERRED_TOOLCHAIN_SDK ??= "gcc"
-
-PREFERRED_TOOLCHAIN = "${PREFERRED_TOOLCHAIN_TARGET}"
-PREFERRED_TOOLCHAIN:class-native = "${PREFERRED_TOOLCHAIN_NATIVE}"
-PREFERRED_TOOLCHAIN:class-cross = "${PREFERRED_TOOLCHAIN_NATIVE}"
-PREFERRED_TOOLCHAIN:class-crosssdk = "${PREFERRED_TOOLCHAIN_SDK}"
-PREFERRED_TOOLCHAIN:class-nativesdk = "${PREFERRED_TOOLCHAIN_SDK}"
-
-TOOLCHAIN ??= "${PREFERRED_TOOLCHAIN}"
-TOOLCHAIN_NATIVE ??= "${PREFERRED_TOOLCHAIN_NATIVE}"
-
-inherit_defer toolchain/${TOOLCHAIN_NATIVE}-native
-inherit_defer toolchain/${TOOLCHAIN}
-
 def lsb_distro_identifier(d):
     adjust = d.getVar('LSB_DISTRO_ADJUST')
     adjust_func = None
@@ -155,7 +139,6 @@ do_fetch[file-checksums] = "${@bb.fetch.get_checksum_file_list(d)}"
 do_fetch[file-checksums] += " ${@get_lic_checksum_file_list(d)}"
 do_fetch[prefuncs] += "fetcher_hashes_dummyfunc"
 do_fetch[network] = "1"
-do_fetch[umask] = "${OE_SHARED_UMASK}"
 python base_do_fetch() {
 
     src_uri = (d.getVar('SRC_URI') or "").split()
@@ -185,16 +168,23 @@ python base_do_unpack() {
 
     basedir = None
     unpackdir = d.getVar('UNPACKDIR')
-    if sourcedir.startswith(unpackdir):
-        basedir = sourcedir.replace(unpackdir, '').strip("/").split('/')[0]
+    workdir = d.getVar('WORKDIR')
+    if sourcedir.startswith(workdir) and not sourcedir.startswith(unpackdir):
+        basedir = sourcedir.replace(workdir, '').strip("/").split('/')[0]
         if basedir:
-            d.setVar("SOURCE_BASEDIR", unpackdir + '/' + basedir)
+            bb.utils.remove(workdir + '/' + basedir, True)
+            d.setVar("SOURCE_BASEDIR", workdir + '/' + basedir)
 
     try:
         fetcher = bb.fetch2.Fetch(src_uri, d)
         fetcher.unpack(d.getVar('UNPACKDIR'))
     except bb.fetch2.BBFetchException as e:
         bb.fatal("Bitbake Fetcher Error: " + repr(e))
+
+    if basedir and os.path.exists(unpackdir + '/' + basedir):
+        # Compatibility magic to ensure ${WORKDIR}/git and ${WORKDIR}/${BP}
+        # as often used in S work as expected.
+        shutil.move(unpackdir + '/' + basedir, workdir + '/' + basedir)
 }
 
 SSTATETASKS += "do_deploy_source_date_epoch"
@@ -277,18 +267,9 @@ def buildcfg_neededvars(d):
         bb.fatal('The following variable(s) were not set: %s\nPlease set them directly, or choose a MACHINE or DISTRO that sets them.' % ', '.join(pesteruser))
 
 addhandler base_eventhandler
-base_eventhandler[eventmask] = "bb.event.ConfigParsed bb.event.MultiConfigParsed bb.event.BuildStarted bb.event.RecipePreFinalise bb.event.RecipeParsed bb.event.RecipePreDeferredInherits"
+base_eventhandler[eventmask] = "bb.event.ConfigParsed bb.event.MultiConfigParsed bb.event.BuildStarted bb.event.RecipePreFinalise bb.event.RecipeParsed"
 python base_eventhandler() {
     import bb.runqueue
-
-    if isinstance(e, bb.event.RecipePreDeferredInherits):
-        # Use this to snoop on class extensions and set these up before the deferred inherits
-        # are processed which allows overrides on conditional variables.
-        for c in ['native', 'nativesdk', 'crosssdk', 'cross']:
-            if c in e.inherits:
-                d.setVar('CLASSOVERRIDE', 'class-' + c)
-                break
-        return
 
     if isinstance(e, bb.event.ConfigParsed):
         if not d.getVar("NATIVELSBSTRING", False):

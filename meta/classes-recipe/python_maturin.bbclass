@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: MIT
 #
 
-inherit python_pyo3 python_pep517
+inherit python_pyo3 python_setuptools_build_meta
 
 DEPENDS += "python3-maturin-native"
 

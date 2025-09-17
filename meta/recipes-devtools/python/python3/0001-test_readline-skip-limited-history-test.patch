@@ -16,8 +16,6 @@ Signed-off-by: Trevor Gamblin <tgamblin@baylibre.com>
  Lib/test/test_readline.py | 3 +++
  1 file changed, 3 insertions(+)
 
-diff --git a/Lib/test/test_readline.py b/Lib/test/test_readline.py
-index 537a9fb..ddf0323 100644
 --- a/Lib/test/test_readline.py
 +++ b/Lib/test/test_readline.py
 @@ -71,6 +71,7 @@ class TestHistoryManipulation (unittest.TestCase):

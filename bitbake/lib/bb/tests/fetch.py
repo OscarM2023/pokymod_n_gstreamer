@@ -7,10 +7,7 @@
 #
 
 import contextlib
-import shutil
 import unittest
-import unittest.mock
-import urllib.parse
 import hashlib
 import tempfile
 import collections
@@ -20,25 +17,12 @@ import tarfile
 from bb.fetch2 import URI
 from bb.fetch2 import FetchMethod
 import bb
-import bb.utils
 from bb.tests.support.httpserver import HTTPService
 
 def skipIfNoNetwork():
     if os.environ.get("BB_SKIP_NETTESTS") == "yes":
         return unittest.skip("network test")
     return lambda f: f
-
-
-@contextlib.contextmanager
-def hide_directory(directory):
-    """Hide the given directory and restore it after the context is left"""
-    temp_name = directory + ".bak"
-    os.rename(directory, temp_name)
-    try:
-        yield
-    finally:
-        os.rename(temp_name, directory)
-
 
 class TestTimeout(Exception):
     # Indicate to pytest that this is not a test suite
@@ -1291,6 +1275,7 @@ class FetcherNetworkTest(FetcherTest):
 
 class SVNTest(FetcherTest):
     def skipIfNoSvn():
+        import shutil
         if not shutil.which("svn"):
             return unittest.skip("svn not installed,  tests being skipped")
 
@@ -1413,6 +1398,8 @@ class TrustedNetworksTest(FetcherTest):
         self.assertFalse(bb.fetch.trusted_network(self.d, url))
 
 class URLHandle(unittest.TestCase):
+    import urllib.parse
+
     # Quote password as per RFC3986
     password = urllib.parse.quote(r"!#$%^&*()-_={}[]\|:?,.<>~`", r"!$&'/()*+,;=")
     datatable = {
@@ -1439,6 +1426,7 @@ class URLHandle(unittest.TestCase):
             self.assertEqual(result, v)
 
     def test_encodeurl(self):
+        import urllib.parse
         for k, v in self.datatable.items():
             result = bb.fetch.encodeurl(v)
             if result.startswith("file:"):
@@ -2238,33 +2226,6 @@ class GitShallowTest(FetcherTest):
         self.assertIn("Unable to find revision v0.0 even from upstream", cm.output[0])
 
     @skipIfNoNetwork()
-    def test_git_shallow_fetch_premirrors(self):
-        url = "git://git.openembedded.org/bitbake;branch=master;protocol=https"
-
-        # Create a separate premirror directory within tempdir
-        premirror = os.path.join(self.tempdir, "premirror")
-        os.mkdir(premirror)
-
-        # Fetch a non-shallow clone into the premirror subdir
-        self.d.setVar('BB_GIT_SHALLOW', '0')
-        self.d.setVar("DL_DIR", premirror)
-        fetcher, ud = self.fetch(url)
-
-        # Fetch a shallow clone from the premirror subdir with unpacking
-        # using the original recipe URL and the premirror mapping
-        self.d.setVar('BB_GIT_SHALLOW', '1')
-        self.d.setVar("DL_DIR", self.dldir)
-        self.d.setVar('BB_FETCH_PREMIRRORONLY', '1')
-        self.d.setVar('BB_NO_NETWORK', '1')
-        self.d.setVar('BB_GENERATE_MIRROR_TARBALLS', '0')
-        self.d.setVar("PREMIRRORS", "git://.*/.* git://{0};protocol=file".format(premirror + "/git2/" + ud.host + ud.path.replace("/", ".")))
-        fetcher = self.fetch_and_unpack(url)
-
-        # Verify that the unpacked sources are shallow clones
-        self.assertRevCount(1)
-        assert os.path.exists(os.path.join(self.gitdir, '.git', 'shallow'))
-
-    @skipIfNoNetwork()
     def test_bitbake(self):
         self.git('remote add --mirror=fetch origin https://github.com/openembedded/bitbake', cwd=self.srcdir)
         self.git('config core.bare true', cwd=self.srcdir)
@@ -2308,21 +2269,9 @@ class GitShallowTest(FetcherTest):
         self.assertRevCount(1)
         assert os.path.exists(os.path.join(self.gitdir, '.git', 'shallow'))
 
-    def test_shallow_succeeds_with_tag_containing_slash(self):
-        self.add_empty_file('a')
-        self.add_empty_file('b')
-        self.git('tag t1/t2/t3', cwd=self.srcdir)
-        self.assertRevCount(2, cwd=self.srcdir)
-
-        srcrev = self.git('rev-parse HEAD', cwd=self.srcdir).strip()
-        self.d.setVar('SRCREV', srcrev)
-        uri = self.d.getVar('SRC_URI').split()[0]
-        uri = '%s;tag=t1/t2/t3' % uri
-        self.fetch_shallow(uri)
-        self.assertRevCount(1)
-
 class GitLfsTest(FetcherTest):
     def skipIfNoGitLFS():
+        import shutil
         if not shutil.which('git-lfs'):
             return unittest.skip('git-lfs not installed')
         return lambda f: f
@@ -2346,18 +2295,12 @@ class GitLfsTest(FetcherTest):
         self.git_init(cwd=self.srcdir)
         self.commit_file('.gitattributes', '*.mp3 filter=lfs -text')
 
-    def commit(self, *, cwd=None):
-        cwd = cwd or self.srcdir
-        self.git(["commit", "-m", "Change"], cwd=cwd)
-        return self.git(["rev-parse", "HEAD"], cwd=cwd).strip()
-
-    def commit_file(self, filename, content, *, cwd=None):
-        cwd = cwd or self.srcdir
-
-        with open(os.path.join(cwd, filename), "w") as f:
+    def commit_file(self, filename, content):
+        with open(os.path.join(self.srcdir, filename), "w") as f:
             f.write(content)
-        self.git(["add", filename], cwd=cwd)
-        return self.commit(cwd=cwd)
+        self.git(["add", filename], cwd=self.srcdir)
+        self.git(["commit", "-m", "Change"], cwd=self.srcdir)
+        return self.git(["rev-parse", "HEAD"], cwd=self.srcdir).strip()
 
     def fetch(self, uri=None, download=True):
         uris = self.d.getVar('SRC_URI').split()
@@ -2378,112 +2321,25 @@ class GitLfsTest(FetcherTest):
         return unpacked_lfs_file
 
     @skipIfNoGitLFS()
-    def test_gitsm_lfs(self):
-        """Test that the gitsm fetcher caches objects stored via LFS"""
-        self.git(["lfs", "install", "--local"], cwd=self.srcdir)
-
-        def fetch_and_verify(revision, filename, content):
-            self.d.setVar('SRCREV', revision)
-            fetcher, ud = self.fetch()
-
-            with hide_directory(submoduledir), hide_directory(self.srcdir):
-                workdir = self.d.getVar('WORKDIR')
-                fetcher.unpack(workdir)
-
-                with open(os.path.join(workdir, "git", filename)) as f:
-                    self.assertEqual(f.read(), content)
-
-        # Create the git repository that will later be used as a submodule
-        submoduledir = self.tempdir + "/submodule"
-        bb.utils.mkdirhier(submoduledir)
-        self.git_init(submoduledir)
-        self.git(["lfs", "install", "--local"], cwd=submoduledir)
-        self.commit_file('.gitattributes', '*.mp3 filter=lfs -text', cwd=submoduledir)
-
-        submodule_commit_1 = self.commit_file("a.mp3", "submodule version 1", cwd=submoduledir)
-        _ = self.commit_file("a.mp3", "submodule version 2", cwd=submoduledir)
-
-        # Add the submodule to the repository at its current HEAD revision
-        self.git(["-c", "protocol.file.allow=always", "submodule", "add", submoduledir, "submodule"],
-                 cwd=self.srcdir)
-        base_commit_1 = self.commit()
-
-        # Let the submodule point at a different revision
-        self.git(["checkout", submodule_commit_1], self.srcdir + "/submodule")
-        self.git(["add", "submodule"], cwd=self.srcdir)
-        base_commit_2 = self.commit()
-
-        # Add a LFS file to the repository
-        base_commit_3 = self.commit_file("a.mp3", "version 1")
-        # Update the added LFS file
-        base_commit_4 = self.commit_file("a.mp3", "version 2")
-
-        self.d.setVar('SRC_URI', "gitsm://%s;protocol=file;lfs=1;branch=master" % self.srcdir)
-
-        # Verify that LFS objects referenced from submodules are fetched and checked out
-        fetch_and_verify(base_commit_1, "submodule/a.mp3", "submodule version 2")
-        # Verify that the repository inside the download cache of a submodile is extended with any
-        # additional LFS objects needed when checking out a different revision.
-        fetch_and_verify(base_commit_2, "submodule/a.mp3", "submodule version 1")
-        # Verify that LFS objects referenced from the base repository are fetched and checked out
-        fetch_and_verify(base_commit_3, "a.mp3", "version 1")
-        # Verify that the cached repository is extended with any additional LFS objects required
-        # when checking out a different revision.
-        fetch_and_verify(base_commit_4, "a.mp3", "version 2")
-
-    @skipIfNoGitLFS()
-    def test_gitsm_lfs_disabled(self):
-        """Test that the gitsm fetcher does not use LFS when explicitly disabled"""
-        self.git(["lfs", "install", "--local"], cwd=self.srcdir)
-
-        def fetch_and_verify(revision, filename, content):
-            self.d.setVar('SRCREV', revision)
-            fetcher, ud = self.fetch()
-
-            with hide_directory(submoduledir), hide_directory(self.srcdir):
-                workdir = self.d.getVar('WORKDIR')
-                fetcher.unpack(workdir)
-
-                with open(os.path.join(workdir, "git", filename)) as f:
-                    # Assume that LFS did not perform smudging when the expected content is
-                    # missing.
-                    self.assertNotEqual(f.read(), content)
-
-        # Create the git repository that will later be used as a submodule
-        submoduledir = self.tempdir + "/submodule"
-        bb.utils.mkdirhier(submoduledir)
-        self.git_init(submoduledir)
-        self.git(["lfs", "install", "--local"], cwd=submoduledir)
-        self.commit_file('.gitattributes', '*.mp3 filter=lfs -text', cwd=submoduledir)
-
-        submodule_commit_1 = self.commit_file("a.mp3", "submodule version 1", cwd=submoduledir)
-
-        # Add the submodule to the repository at its current HEAD revision
-        self.git(["-c", "protocol.file.allow=always", "submodule", "add", submoduledir, "submodule"],
-                 cwd=self.srcdir)
-        base_commit_1 = self.commit()
-
-        # Add a LFS file to the repository
-        base_commit_2 = self.commit_file("a.mp3", "version 1")
-
-        self.d.setVar('SRC_URI', "gitsm://%s;protocol=file;lfs=1;branch=master;lfs=0" % self.srcdir)
-
-        # Verify that LFS objects referenced from submodules are not fetched nor checked out
-        fetch_and_verify(base_commit_1, "submodule/a.mp3", "submodule version 1")
-        # Verify that the LFS objects referenced from the base repository are not fetched nor
-        # checked out
-        fetch_and_verify(base_commit_2, "a.mp3", "version 1")
-
-    @skipIfNoGitLFS()
     def test_fetch_lfs_on_srcrev_change(self):
         """Test if fetch downloads missing LFS objects when a different revision within an existing repository is requested"""
         self.git(["lfs", "install", "--local"], cwd=self.srcdir)
 
+        @contextlib.contextmanager
+        def hide_upstream_repository():
+            """Hide the upstream repository to make sure that git lfs cannot pull from it"""
+            temp_name = self.srcdir + ".bak"
+            os.rename(self.srcdir, temp_name)
+            try:
+                yield
+            finally:
+                os.rename(temp_name, self.srcdir)
+
         def fetch_and_verify(revision, filename, content):
             self.d.setVar('SRCREV', revision)
             fetcher, ud = self.fetch()
 
-            with hide_directory(self.srcdir):
+            with hide_upstream_repository():
                 workdir = self.d.getVar('WORKDIR')
                 fetcher.unpack(workdir)
 
@@ -2535,6 +2391,8 @@ class GitLfsTest(FetcherTest):
 
     @skipIfNoGitLFS()
     def test_lfs_enabled(self):
+        import shutil
+
         uri = 'git://%s;protocol=file;lfs=1;branch=master' % self.srcdir
         self.d.setVar('SRC_URI', uri)
 
@@ -2545,6 +2403,8 @@ class GitLfsTest(FetcherTest):
 
     @skipIfNoGitLFS()
     def test_lfs_disabled(self):
+        import shutil
+
         uri = 'git://%s;protocol=file;lfs=0;branch=master' % self.srcdir
         self.d.setVar('SRC_URI', uri)
 
@@ -2553,64 +2413,48 @@ class GitLfsTest(FetcherTest):
         fetcher, ud = self.fetch()
         fetcher.unpack(self.d.getVar('WORKDIR'))
 
-    @skipIfNoGitLFS()
-    def test_lfs_enabled_not_installed_during_unpack(self):
-        uri = 'git://%s;protocol=file;lfs=1;branch=master' % self.srcdir
-        self.d.setVar('SRC_URI', uri)
-
-        # Careful: suppress initial attempt at downloading
-        fetcher, ud = self.fetch(uri=None, download=False)
-
-        fetcher.download()
-        # If git-lfs cannot be found, the unpack should throw an error
-        with self.assertRaises(bb.fetch2.FetchError):
-            with unittest.mock.patch("shutil.which", return_value=None):
-                shutil.rmtree(self.gitdir, ignore_errors=True)
-                fetcher.unpack(self.d.getVar('WORKDIR'))
-
     def test_lfs_enabled_not_installed(self):
+        import shutil
+
         uri = 'git://%s;protocol=file;lfs=1;branch=master' % self.srcdir
         self.d.setVar('SRC_URI', uri)
 
         # Careful: suppress initial attempt at downloading
         fetcher, ud = self.fetch(uri=None, download=False)
 
-        # If git-lfs cannot be found, the download should throw an error
-        with unittest.mock.patch("shutil.which", return_value=None):
+        # Artificially assert that git-lfs is not installed, so
+        # we can verify a failure to unpack in it's absence.
+        old_find_git_lfs = ud.method._find_git_lfs
+        try:
+            # If git-lfs cannot be found, the unpack should throw an error
             with self.assertRaises(bb.fetch2.FetchError):
                 fetcher.download()
+                ud.method._find_git_lfs = lambda d: False
+                shutil.rmtree(self.gitdir, ignore_errors=True)
+                fetcher.unpack(self.d.getVar('WORKDIR'))
+        finally:
+            ud.method._find_git_lfs = old_find_git_lfs
 
     def test_lfs_disabled_not_installed(self):
+        import shutil
+
         uri = 'git://%s;protocol=file;lfs=0;branch=master' % self.srcdir
         self.d.setVar('SRC_URI', uri)
 
         # Careful: suppress initial attempt at downloading
         fetcher, ud = self.fetch(uri=None, download=False)
 
-        # Even if git-lfs cannot be found, the download / unpack should be successful
-        with unittest.mock.patch("shutil.which", return_value=None):
+        # Artificially assert that git-lfs is not installed, so
+        # we can verify a failure to unpack in it's absence.
+        old_find_git_lfs = ud.method._find_git_lfs
+        try:
+            # Even if git-lfs cannot be found, the unpack should be successful
             fetcher.download()
+            ud.method._find_git_lfs = lambda d: False
             shutil.rmtree(self.gitdir, ignore_errors=True)
             fetcher.unpack(self.d.getVar('WORKDIR'))
-
-    def test_lfs_enabled_not_installed_but_not_needed(self):
-        srcdir = os.path.join(self.tempdir, "emptygit")
-        bb.utils.mkdirhier(srcdir)
-        self.git_init(srcdir)
-        self.commit_file("test", "test content", cwd=srcdir)
-
-        uri = 'git://%s;protocol=file;lfs=1;branch=master' % srcdir
-        self.d.setVar('SRC_URI', uri)
-
-        # Careful: suppress initial attempt at downloading
-        fetcher, ud = self.fetch(uri=None, download=False)
-
-        # It shouldnt't matter that git-lfs cannot be found as the repository configuration does not
-        # specify any LFS filters.
-        with unittest.mock.patch("shutil.which", return_value=None):
-            fetcher.download()
-            shutil.rmtree(self.gitdir, ignore_errors=True)
-            fetcher.unpack(self.d.getVar('WORKDIR'))
+        finally:
+            ud.method._find_git_lfs = old_find_git_lfs
 
 class GitURLWithSpacesTest(FetcherTest):
     test_git_urls = {
@@ -2646,50 +2490,6 @@ class GitURLWithSpacesTest(FetcherTest):
             self.assertEqual(ud.clonedir, os.path.join(self.dldir, "git2", ref['gitsrcname']))
             self.assertEqual(ud.fullmirror, os.path.join(self.dldir, "git2_" + ref['gitsrcname'] + '.tar.gz'))
             self.assertEqual(ud.method._get_repo_url(ud), ref['repo_url'])
-
-
-class FetchLocallyMissingTagFromRemote(FetcherTest):
-    def setUp(self):
-        FetcherTest.setUp(self)
-        self.gitdir = os.path.join(self.tempdir, 'git')
-        self.srcdir = os.path.join(self.tempdir, 'gitsource')
-
-        bb.utils.mkdirhier(self.srcdir)
-        self.git_init(cwd=self.srcdir)
-        self.d.setVar('WORKDIR', self.tempdir)
-        self.d.setVar('S', self.gitdir)
-
-        uri = 'git://%s;protocol=file;subdir=${S};branch=master' % self.srcdir
-        self.d.setVar('SRC_URI', uri)
-
-        open(os.path.join(self.srcdir, 'dummyfile'), 'w').close()
-        self.git(['add', 'dummyfile'], self.srcdir)
-        self.git(['commit', '-m', 'dummymsg', 'dummyfile'], self.srcdir)
-
-    def _fetch_and_unpack(self, uri_to_fetch):
-        fetcher = bb.fetch2.Fetch([uri_to_fetch], self.d)
-        fetcher.download()
-        fetcher.unpack(self.d.getVar('WORKDIR'))
-
-    def test_tag_present_in_remote_but_not_local(self):
-        # fetch a repo that has no tag in it
-        # then add a tag to this repo, and fetch it again, without
-        # changing SRC_REV, but by adding ';tag=tag1` to SRC_URI
-        # the new tag should be fetched and unpacked
-        srcrev = self.git('rev-parse HEAD', cwd=self.srcdir).strip()
-        self.d.setVar('SRCREV', srcrev)
-        src_uri = self.d.getVar('SRC_URI')
-        self._fetch_and_unpack(src_uri)
-
-        self.git('tag -m -a tag1', cwd=self.srcdir)
-
-        src_uri = '%s;tag=tag1' % self.d.getVar('SRC_URI').split()[0]
-        self.d.setVar('SRC_URI', src_uri)
-        self._fetch_and_unpack(src_uri)
-
-        output = self.git('log --pretty=oneline -n 1 refs/tags/tag1', cwd=self.gitdir)
-        assert "fatal: ambiguous argument" not in output
-
 
 class CrateTest(FetcherTest):
     @skipIfNoNetwork()
@@ -2811,6 +2611,7 @@ class CrateTest(FetcherTest):
 
 class NPMTest(FetcherTest):
     def skipIfNoNpm():
+        import shutil
         if not shutil.which('npm'):
             return unittest.skip('npm not installed')
         return lambda f: f
@@ -3338,13 +3139,6 @@ class GitTagVerificationTests(FetcherTest):
         fetcher.download()
         fetcher.unpack(self.unpackdir)
 
-    def test_annotated_tag_rev_match(self):
-        # Test a url with rev= and tag= set works
-        # rev is the annotated tag revision in this case
-        fetcher = bb.fetch.Fetch(["git://git.openembedded.org/bitbake;branch=2.8;protocol=https;rev=6d363159e4b7dc566fc40d069b2615e61774a7d8;tag=2.8.7"], self.d)
-        fetcher.download()
-        fetcher.unpack(self.unpackdir)
-
     @skipIfNoNetwork()
     def test_tag_rev_match2(self):
         # Test a url with SRCREV and tag= set works
@@ -3493,10 +3287,10 @@ class FetchPremirroronlyNetworkTest(FetcherTest):
         self.d.setVar("PREMIRRORS", self.recipe_url + " " + "file://{}".format(self.mirrordir) + " \n")
 
     def make_git_repo(self):
+        import shutil
         self.mirrorname = "git2_git.yoctoproject.org.fstests.tar.gz"
         os.makedirs(self.clonedir)
-        self.git("clone --bare {}".format(self.recipe_url), self.clonedir)
-        self.git("update-ref HEAD 15413486df1f5a5b5af699b6f3ba5f0984e52a9f", self.gitdir)
+        self.git("clone --bare --shallow-since=\"01.01.2013\" {}".format(self.recipe_url), self.clonedir)
         bb.process.run('tar -czvf {} .'.format(os.path.join(self.mirrordir, self.mirrorname)), cwd =  self.gitdir)
         shutil.rmtree(self.clonedir)
 
@@ -3504,7 +3298,7 @@ class FetchPremirroronlyNetworkTest(FetcherTest):
     def test_mirror_tarball_updated(self):
         self.make_git_repo()
         ## Upstream commit is in the mirror
-        self.d.setVar("SRCREV", "15413486df1f5a5b5af699b6f3ba5f0984e52a9f")
+        self.d.setVar("SRCREV", "49d65d53c2bf558ae6e9185af0f3af7b79d255ec")
         fetcher = bb.fetch.Fetch([self.recipe_url], self.d)
         fetcher.download()
 
@@ -3512,7 +3306,7 @@ class FetchPremirroronlyNetworkTest(FetcherTest):
     def test_mirror_tarball_outdated(self):
         self.make_git_repo()
         ## Upstream commit not in the mirror
-        self.d.setVar("SRCREV", "49d65d53c2bf558ae6e9185af0f3af7b79d255ec")
+        self.d.setVar("SRCREV", "15413486df1f5a5b5af699b6f3ba5f0984e52a9f")
         fetcher = bb.fetch.Fetch([self.recipe_url], self.d)
         with self.assertRaises(bb.fetch2.NetworkAccess):
             fetcher.download()
@@ -3522,6 +3316,7 @@ class FetchPremirroronlyMercurialTest(FetcherTest):
         the test covers also basic hg:// clone (see fetch_and_create_tarball
     """
     def skipIfNoHg():
+        import shutil
         if not shutil.which('hg'):
             return unittest.skip('Mercurial not installed')
         return lambda f: f
@@ -3577,6 +3372,7 @@ class FetchPremirroronlyBrokenTarball(FetcherTest):
             targz.write("This is not tar.gz file!")
 
     def test_mirror_broken_download(self):
+        import sys
         self.d.setVar("SRCREV", "0"*40)
         fetcher = bb.fetch.Fetch([self.recipe_url], self.d)
         with self.assertRaises(bb.fetch2.FetchError), self.assertLogs() as logs:

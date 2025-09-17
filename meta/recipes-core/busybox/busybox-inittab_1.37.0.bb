@@ -4,7 +4,8 @@ LIC_FILES_CHKSUM = "file://${COREBASE}/meta/files/common-licenses/GPL-2.0-only;m
 
 SRC_URI = "file://inittab"
 
-S = "${UNPACKDIR}"
+S = "${WORKDIR}/sources"
+UNPACKDIR = "${S}"
 
 INHIBIT_DEFAULT_DEPS = "1"
 
@@ -21,8 +22,9 @@ do_install() {
     do
         speed=$(echo $s | cut -d\; -f 1)
         device=$(echo $s | cut -d\; -f 2)
+        label=$(echo $device | sed -e 's/tty//' | tail --bytes=5)
 
-        echo "$device::respawn:${sbindir}/ttyrun $device ${base_sbindir}/getty -L $speed $device" >> ${D}${sysconfdir}/inittab
+        echo "$device::respawn:${sbindir}/ttyrun $device ${base_sbindir}/getty $speed $device" >> ${D}${sysconfdir}/inittab
     done
 
 	if [ "${USE_VT}" = "1" ]; then
@@ -46,6 +48,7 @@ EOF
 	fi
 
 }
+
 
 # SERIAL_CONSOLES is generally defined by the MACHINE .conf.
 # Set PACKAGE_ARCH appropriately.

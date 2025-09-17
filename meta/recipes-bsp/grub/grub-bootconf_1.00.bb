@@ -11,7 +11,8 @@ inherit grub-efi-cfg
 
 require conf/image-uefi.conf
 
-S = "${UNPACKDIR}"
+S = "${WORKDIR}/sources"
+UNPACKDIR = "${S}"
 
 GRUB_CFG = "${S}/grub-bootconf"
 LABELS = "boot"

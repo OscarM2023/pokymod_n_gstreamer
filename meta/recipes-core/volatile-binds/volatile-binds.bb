@@ -9,7 +9,8 @@ SRC_URI = "\
     file://volatile-binds.service.in \
 "
 
-S = "${UNPACKDIR}"
+S = "${WORKDIR}/sources"
+UNPACKDIR = "${S}"
 
 inherit allarch systemd features_check
 

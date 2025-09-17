@@ -32,10 +32,10 @@ CHECKLAYER_REQUIRED_TESTS = "\
     invalid-packageconfig la \
     license-checksum license-exception license-exists license-file-missing license-format license-no-generic license-syntax \
     mime mime-xdg missing-update-alternatives multilib obsolete-license \
-    packages-list patch-fuzz patch-status perllocalpod perm-config perm-line perm-link recipe-naming \
+    packages-list patch-fuzz patch-status perllocalpod perm-config perm-line perm-link \
     pkgconfig pkgvarcheck pkgv-undefined pn-overrides shebang-size src-uri-bad symlink-to-sysroot \
     unhandled-features-check unknown-configure-option unlisted-pkg-lics uppercase-pn useless-rpaths \
-    virtual-slash xorg-driver-abi"
+    var-undefined virtual-slash xorg-driver-abi"
 
 # Elect whether a given type of error is a warning or error, they may
 # have been set by other files.
@@ -832,7 +832,7 @@ def package_qa_check_rdepends(pkg, pkgdest, skip, taskdeps, packages, d):
                 return False
 
             for rdepend in rdepends:
-                if rdepend.endswith("-dbg") and "debug-deps" not in skip:
+                if "-dbg" in rdepend and "debug-deps" not in skip:
                     error_msg = "%s rdepends on %s" % (pkg,rdepend)
                     oe.qa.handle_error("debug-deps", error_msg, d)
                 if (not "-dev" in pkg and not "-staticdev" in pkg) and rdepend.endswith("-dev") and "dev-deps" not in skip:
@@ -1332,13 +1332,6 @@ python do_qa_patch() {
     elif os.path.exists(os.path.join(srcdir, "Makefile.in")) and (match_line_in_files(srcdir, "**/Makefile.in", r'\s*TESTS\s*\+?=') or match_line_in_files(srcdir,"**/*.at",r'.*AT_INIT')):
         oe.qa.handle_error("unimplemented-ptest", "%s: autotools-based tests detected" % d.getVar('PN'), d)
 
-    # Detect cargo-based tests
-    elif os.path.exists(os.path.join(srcdir, "Cargo.toml")) and (
-        match_line_in_files(srcdir, "**/*.rs", r'\s*#\s*\[\s*test\s*\]') or 
-        match_line_in_files(srcdir, "**/*.rs", r'\s*#\s*\[\s*cfg\s*\(\s*test\s*\)\s*\]')
-    ):
-        oe.qa.handle_error("unimplemented-ptest", "%s: cargo-based tests detected" % d.getVar('PN'), d)
-
     # Last resort, detect a test directory in sources
     elif os.path.exists(srcdir) and any(filename.lower() in ["test", "tests"] for filename in os.listdir(srcdir)):
         oe.qa.handle_error("unimplemented-ptest", "%s: test subdirectory detected" % d.getVar('PN'), d)
@@ -1431,26 +1424,12 @@ Rerun configure task after fixing this."""
 python do_qa_unpack() {
     src_uri = d.getVar('SRC_URI')
     s_dir = d.getVar('S')
-    s_dir_orig = d.getVar('S', False)
-
-    if s_dir_orig == '${WORKDIR}/git' or s_dir_orig == '${UNPACKDIR}/git':
-        bb.fatal('Recipes that set S = "${WORKDIR}/git" or S = "${UNPACKDIR}/git" should remove that assignment, as S set by bitbake.conf in oe-core now works.')
-
-    if '${WORKDIR}' in s_dir_orig:
-        bb.fatal('S should be set relative to UNPACKDIR, e.g. replace WORKDIR with UNPACKDIR in "S = {}"'.format(s_dir_orig))
-
     if src_uri and not os.path.exists(s_dir):
         bb.warn('%s: the directory %s (%s) pointed to by the S variable doesn\'t exist - please set S within the recipe to point to where the source has been unpacked to' % (d.getVar('PN'), d.getVar('S', False), s_dir))
 }
 
 python do_recipe_qa() {
     import re
-
-    def test_naming(pn, d):
-        if pn.endswith("-native") and not bb.data.inherits_class("native", d):
-            oe.qa.handle_error("recipe-naming", "Recipe %s appears native but is not, should inherit native" % pn, d)
-        if pn.startswith("nativesdk-") and not bb.data.inherits_class("nativesdk", d):
-            oe.qa.handle_error("recipe-naming", "Recipe %s appears nativesdk but is not, should inherit nativesdk" % pn, d)
 
     def test_missing_metadata(pn, d):
         fn = d.getVar("FILE")
@@ -1496,7 +1475,6 @@ python do_recipe_qa() {
                 oe.qa.handle_error("invalid-packageconfig", error_msg, d)
 
     pn = d.getVar('PN')
-    test_naming(pn, d)
     test_missing_metadata(pn, d)
     test_missing_maintainer(pn, d)
     test_srcuri(pn, d)

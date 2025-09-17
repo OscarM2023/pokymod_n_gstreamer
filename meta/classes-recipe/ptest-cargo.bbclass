@@ -14,7 +14,6 @@ python do_compile_ptest_cargo() {
 
     cargo = bb.utils.which(d.getVar("PATH"), d.getVar("CARGO"))
     cargo_build_flags = d.getVar("CARGO_BUILD_FLAGS")
-    packageconfig_confargs = d.getVar("PACKAGECONFIG_CONFARGS")
     rust_flags = d.getVar("RUSTFLAGS")
     manifest_path = d.getVar("CARGO_MANIFEST_PATH")
     project_manifest_path = os.path.normpath(manifest_path)
@@ -22,7 +21,7 @@ python do_compile_ptest_cargo() {
 
     env = os.environ.copy()
     env['RUSTFLAGS'] = rust_flags
-    cmd = f"{cargo} build --tests --message-format json {cargo_build_flags} {packageconfig_confargs}"
+    cmd = f"{cargo} build --tests --message-format json {cargo_build_flags}"
     bb.note(f"Building tests with cargo ({cmd})")
 
     try:
@@ -70,14 +69,13 @@ python do_compile_ptest_cargo() {
     cargo_test_binaries_file = d.getVar('CARGO_TEST_BINARIES_FILES')
     bb.note(f"Found {len(test_bins)} tests, write their paths into {cargo_test_binaries_file}")
     with open(cargo_test_binaries_file, "w") as f:
-        for test_bin in sorted(test_bins):
+        for test_bin in test_bins:
             f.write(f"{test_bin}\n")
 
 }
 
 python do_install_ptest_cargo() {
     import shutil
-    import textwrap
 
     dest_dir = d.getVar("D")
     pn = d.getVar("PN")
@@ -99,29 +97,17 @@ python do_install_ptest_cargo() {
         test_paths.append(os.path.join(ptest_path, os.path.basename(test_bin)))
 
     ptest_script = os.path.join(ptest_dir, "run-ptest")
-    script_exists = os.path.exists(ptest_script)
-    with open(ptest_script, "a") as f:
-        if not script_exists:
-            f.write("#!/bin/sh\n")
-        else:
+    if os.path.exists(ptest_script):
+        with open(ptest_script, "a") as f:
             f.write(f"\necho \"\"\n")
-            f.write(f"echo \"## starting to run rust tests ##\"\n")               
-        f.write("if [ -z \"$rc\" ]; then rc=0; fi\n")
-        for test_path in test_paths:
-            script = textwrap.dedent(f"""\
-                if ! {test_path} {rust_test_args}
-                then
-                    rc=1
-                    echo "FAIL: {test_path}"
-                else
-                    echo "PASS: {test_path}"
-                fi
-            """)
-            f.write(script)
-        
-        f.write("exit $rc\n")
-
-    if not script_exists:
+            f.write(f"echo \"## starting to run rust tests ##\"\n")
+            for test_path in test_paths:
+                f.write(f"{test_path} {rust_test_args}\n")
+    else:
+        with open(ptest_script, "a") as f:
+            f.write("#!/bin/sh\n")
+            for test_path in test_paths:
+                f.write(f"{test_path} {rust_test_args}\n")
         os.chmod(ptest_script, 0o755)
 
     # this is chown -R root:root ${D}${PTEST_PATH}

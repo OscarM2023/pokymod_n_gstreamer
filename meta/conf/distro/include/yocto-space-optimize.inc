@@ -3,8 +3,6 @@
 # and build speed.
 
 # With -g, llvm workdir is 40GB, llvm-staticdev is 1.3GB, llvm-dbg is 1GB
-DEBUG_LEVELFLAG:pn-clang = ""
-DEBUG_LEVELFLAG:pn-clang-native = ""
-DEBUG_LEVELFLAG:pn-nativesdk-clang = ""
+DEBUG_LEVELFLAG:pn-llvm = ""
 # With -g, qemu workdir is 10GB, qemu-dbg is 363MB
 DEBUG_LEVELFLAG:pn-qemu = ""

@@ -2,7 +2,7 @@ SUMMARY = "Multi-platform toolkit for creating GUIs"
 DESCRIPTION = "GTK+ is a multi-platform toolkit for creating graphical user interfaces. Offering a complete \
 set of widgets, GTK+ is suitable for projects ranging from small one-off projects to complete application suites."
 HOMEPAGE = "http://www.gtk.org"
-BUGTRACKER = "https://gitlab.gnome.org/GNOME/gtk/-/issues/"
+BUGTRACKER = "https://bugzilla.gnome.org/"
 SECTION = "libs"
 LIC_FILES_CHKSUM = "file://COPYING;md5=5f30f0716dfdd0d91eb439ebec522ec2 \
                     file://gtk/gtk.h;endline=25;md5=1d8dc0fccdbfa26287a271dce88af737 \
@@ -23,7 +23,7 @@ SRC_URI = "http://ftp.gnome.org/pub/gnome/sources/gtk+/${MAJ_VER}/gtk+-${PV}.tar
            "
 SRC_URI[sha256sum] = "7e04f0648515034b806b74ae5d774d87cffb1a2a96c468cb5be476d51bf2f3c7"
 
-S = "${UNPACKDIR}/gtk+-${PV}"
+S = "${WORKDIR}/gtk+-${PV}"
 
 BBCLASSEXTEND = "native nativesdk"
 

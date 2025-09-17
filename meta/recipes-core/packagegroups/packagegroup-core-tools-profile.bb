@@ -4,6 +4,7 @@
 
 SUMMARY = "Profiling tools"
 
+
 PACKAGE_ARCH = "${MACHINE_ARCH}"
 
 inherit packagegroup
@@ -35,6 +36,7 @@ LTTNGTOOLS = "lttng-tools"
 LTTNGTOOLS:arc = ""
 LTTNGTOOLS:riscv32 = ""
 
+BABELTRACE = "babeltrace"
 BABELTRACE2 = "babeltrace2"
 
 # valgrind does not work on the following configurations/architectures
@@ -58,6 +60,7 @@ VALGRIND:loongarch64 = ""
 RDEPENDS:${PN} = "\
     ${PROFILETOOLS} \
     ${LTTNGTOOLS} \
+    ${BABELTRACE} \
     ${BABELTRACE2} \
     ${SYSTEMTAP} \
     ${VALGRIND} \

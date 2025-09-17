@@ -30,7 +30,7 @@ DEPENDS = "bison-native flex-native libxml2-native virtual/crypt"
 
 EXTRA_OEMESON = "-Ddocs=disabled -Dsecuredir=${base_libdir}/security"
 
-S = "${UNPACKDIR}/Linux-PAM-${PV}"
+S = "${WORKDIR}/Linux-PAM-${PV}"
 
 inherit meson gettext pkgconfig systemd ptest github-releases
 

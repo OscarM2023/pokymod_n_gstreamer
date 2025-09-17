@@ -1,3 +1,10 @@
+PREFERRED_PROVIDER_virtual/xserver ?= "xserver-xorg"
+PREFERRED_PROVIDER_virtual/egl ?= "mesa"
+PREFERRED_PROVIDER_virtual/libgl ?= "mesa"
+PREFERRED_PROVIDER_virtual/libgles1 ?= "mesa"
+PREFERRED_PROVIDER_virtual/libgles2 ?= "mesa"
+PREFERRED_PROVIDER_virtual/libgles3 ?= "mesa"
+
 XSERVER ?= "xserver-xorg \
             ${@bb.utils.contains('DISTRO_FEATURES', 'opengl', 'mesa-driver-swrast xserver-xorg-extension-glx', '', d)} \
             xf86-video-fbdev \
@@ -8,7 +15,7 @@ MACHINE_FEATURES = "alsa bluetooth usbgadget screen vfat"
 
 MACHINEOVERRIDES =. "qemuall:"
 
-IMAGE_FSTYPES += "tar.zst ext4.zst"
+IMAGE_FSTYPES += "tar.bz2 ext4"
 
 # Don't include kernels in standard images
 RDEPENDS:${KERNEL_PACKAGE_NAME}-base = ""

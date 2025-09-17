@@ -30,7 +30,7 @@ impossible or difficult to exploit. There is currently no upstream patch \
 available for this flaw."
 CVE_STATUS[CVE-2022-3553] = "cpe-incorrect: This is specific to XQuartz, which is the macOS X server port"
 
-S = "${UNPACKDIR}/${XORG_PN}-${PV}"
+S = "${WORKDIR}/${XORG_PN}-${PV}"
 
 inherit meson pkgconfig
 
@@ -59,6 +59,7 @@ PACKAGES =+ "${PN}-sdl \
              ${PN}-xvfb \
              ${PN}-utils \
              ${PN}-xephyr \
+             ${PN}-xwayland \
              ${PN}-multimedia-modules \
              ${PN}-extension-dri \
              ${PN}-extension-dri2 \
@@ -81,6 +82,7 @@ SUMMARY:xf86-video-modesetting = "X.Org X server -- modesetting display driver"
 
 XSERVER_RDEPENDS = "xkeyboard-config rgb xserver-xf86-config xkbcomp xf86-input-libinput"
 RDEPENDS:${PN} += "${XSERVER_RDEPENDS}"
+RDEPENDS:${PN}-xwayland += "${XSERVER_RDEPENDS}"
 RDEPENDS:${PN}-xvfb += "xkeyboard-config"
 RDEPENDS:${PN}-module-exa = "${PN} (= ${EXTENDPKGV})"
 
@@ -92,6 +94,7 @@ FILES:${PN}-fbdev = "${bindir}/Xfbdev"
 FILES:${PN}-xvfb = "${bindir}/Xvfb"
 FILES:${PN}-utils = "${bindir}/scanpci ${bindir}/pcitweak ${bindir}/ioport ${bindir}/in[bwl] ${bindir}/out[bwl] ${bindir}/mmap[rw] ${bindir}/gtf ${bindir}/getconfig ${bindir}/getconfig.pl"
 FILES:${PN}-xephyr = "${bindir}/Xephyr"
+FILES:${PN}-xwayland = "${bindir}/Xwayland"
 FILES:${PN}-multimedia-modules = "${libdir}/xorg/modules/multimedia/*drv*"
 FILES:${PN}-extension-dri = "${libdir}/xorg/modules/extensions/libdri.so"
 FILES:${PN}-extension-dri2 = "${libdir}/xorg/modules/extensions/libdri2.so"
@@ -154,3 +157,7 @@ python add_xorg_abi_depends() {
 PACKAGEFUNCS =+ "add_xorg_abi_provides add_xorg_abi_depends"
 
 CVE_STATUS[CVE-2023-5574] = "${@bb.utils.contains('PACKAGECONFIG', 'xvfb', 'unpatched', 'not-applicable-config: specific to Xvfb', d)}"
+
+CVE_STATUS_GROUPS = "CVE_STATUS_REDHAT"
+CVE_STATUS_REDHAT = "CVE-2025-26594 CVE-2025-26595 CVE-2025-26596 CVE-2025-26597 CVE-2025-26598 CVE-2025-26599 CVE-2025-26600 CVE-2025-26601"
+CVE_STATUS_REDHAT[status] = "fixed-version: these are tracked as versionless redhat CVEs in NVD DB, fixed in 21.1.16"

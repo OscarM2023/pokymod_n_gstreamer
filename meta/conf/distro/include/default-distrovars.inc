@@ -36,7 +36,6 @@ COMMERCIAL_VIDEO_PLUGINS ?= ""
 # COMMERCIAL_VIDEO_PLUGINS ?= "gst-plugins-ugly-mpeg2dec gst-plugins-ugly-mpegstream gst-plugins-bad-mpegvideoparse"
 # Set of common licenses used for license.bbclass
 COMMON_LICENSE_DIR ??= "${COREBASE}/meta/files/common-licenses"
-LICENSE_PATH ??= ""
 
 BB_GENERATE_MIRROR_TARBALLS ??= "0"
 
@@ -63,4 +62,4 @@ KERNEL_IMAGETYPES ??= "${KERNEL_IMAGETYPE}"
 # fetch from the network (and warn you if not). To disable the test set
 # the variable to be empty.
 # Git example url: git://git.yoctoproject.org/yocto-firewall-test;protocol=git;rev=master;branch=master
-CONNECTIVITY_CHECK_URIS ?= "https://www.yoctoproject.org/connectivity.html"
+CONNECTIVITY_CHECK_URIS ?= "https://yoctoproject.org/connectivity.html"

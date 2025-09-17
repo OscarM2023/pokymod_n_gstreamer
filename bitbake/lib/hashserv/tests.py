@@ -10,7 +10,7 @@ from .server import DEFAULT_ANON_PERMS, ALL_PERMISSIONS
 from bb.asyncrpc import InvokeError
 import hashlib
 import logging
-from bb import multiprocessing
+import multiprocessing
 import os
 import sys
 import tempfile

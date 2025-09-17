@@ -11,7 +11,9 @@ RCONFLICTS:${PN} = "matchbox-common"
 
 SRC_URI = "file://matchbox-session"
 
-S = "${UNPACKDIR}"
+S = "${WORKDIR}/sources"
+UNPACKDIR = "${S}"
+
 
 inherit update-alternatives
 

@@ -76,7 +76,7 @@ SSTATE_SCAN_CMD_NATIVE ??= 'grep -Irl -e ${RECIPE_SYSROOT} -e ${RECIPE_SYSROOT_N
 SSTATE_HASHEQUIV_FILEMAP ?= " \
     populate_sysroot:*/postinst-useradd-*:${TMPDIR} \
     populate_sysroot:*/postinst-useradd-*:${COREBASE} \
-    populate_sysroot:*/postinst-useradd-*:regex-\s(PATH|PSEUDO_INCLUDE_PATHS|HOME|LOGNAME|OMP_NUM_THREADS|USER)=.*\s \
+    populate_sysroot:*/postinst-useradd-*:regex-\s(PATH|PSEUDO_IGNORE_PATHS|HOME|LOGNAME|OMP_NUM_THREADS|USER)=.*\s \
     populate_sysroot:*/crossscripts/*:${TMPDIR} \
     populate_sysroot:*/crossscripts/*:${COREBASE} \
     "
@@ -306,17 +306,18 @@ def sstate_install(ss, d):
         sharedfiles.append(ss['fixmedir'] + "/fixmepath")
 
     # Write out the manifest
-    with open(manifest, "w") as f:
-        for file in sharedfiles:
-            f.write(file + "\n")
+    f = open(manifest, "w")
+    for file in sharedfiles:
+        f.write(file + "\n")
 
-        # We want to ensure that directories appear at the end of the manifest
-        # so that when we test to see if they should be deleted any contents
-        # added by the task will have been removed first.
-        dirs = sorted(shareddirs, key=len)
-        # Must remove children first, which will have a longer path than the parent
-        for di in reversed(dirs):
-            f.write(di + "\n")
+    # We want to ensure that directories appear at the end of the manifest
+    # so that when we test to see if they should be deleted any contents
+    # added by the task will have been removed first.
+    dirs = sorted(shareddirs, key=len)
+    # Must remove children first, which will have a longer path than the parent
+    for di in reversed(dirs):
+        f.write(di + "\n")
+    f.close()
 
     # Append to the list of manifests for this PACKAGE_ARCH
 
@@ -480,8 +481,9 @@ def sstate_clean_cachefiles(d):
 def sstate_clean_manifest(manifest, d, canrace=False, prefix=None):
     import oe.path
 
-    with open(manifest) as mfile:
-        entries = mfile.readlines()
+    mfile = open(manifest)
+    entries = mfile.readlines()
+    mfile.close()
 
     for entry in entries:
         entry = entry.strip()
@@ -743,7 +745,7 @@ def pstaging_fetch(sstatefetch, d):
     if bb.utils.to_boolean(d.getVar("SSTATE_VERIFY_SIG"), False):
         uris += ['file://{0}.sig;downloadfilename={0}.sig'.format(sstatefetch)]
 
-    with bb.utils.umask(bb.utils.to_filemode(d.getVar("OE_SHARED_UMASK"))):
+    with bb.utils.umask(0o002):
         bb.utils.mkdirhier(dldir)
 
         for srcuri in uris:
@@ -774,10 +776,9 @@ sstate_task_prefunc[dirs] = "${WORKDIR}"
 python sstate_task_postfunc () {
     shared_state = sstate_state_fromvars(d)
 
-    shared_umask = bb.utils.to_filemode(d.getVar("OE_SHARED_UMASK"))
-    omask = os.umask(shared_umask)
-    if omask != shared_umask:
-       bb.note("Using umask %0o (not %0o) for sstate packaging" % (shared_umask, omask))
+    omask = os.umask(0o002)
+    if omask != 0o002:
+       bb.note("Using umask 0o002 (not %0o) for sstate packaging" % omask)
     sstate_package(shared_state, d)
     os.umask(omask)
 
@@ -842,8 +843,7 @@ python sstate_create_and_sign_package () {
 
     # Create the required sstate directory if it is not present.
     if not sstate_pkg.parent.is_dir():
-        shared_umask = bb.utils.to_filemode(d.getVar("OE_SHARED_UMASK"))
-        with bb.utils.umask(shared_umask):
+        with bb.utils.umask(0o002):
             bb.utils.mkdirhier(str(sstate_pkg.parent))
 
     if sign_pkg:
@@ -1036,7 +1036,7 @@ def sstate_checkhashes(sq_data, d, siginfo=False, currentcount=0, summary=True, 
 
             if progress:
                 bb.event.fire(bb.event.ProcessProgress(msg, next(cnt_tasks_done)), d)
-            bb.event.check_for_interrupts()
+            bb.event.check_for_interrupts(d)
 
         tasklist = []
         for tid in missed:
@@ -1296,7 +1296,7 @@ python sstate_eventhandler_reachablestamps() {
                 lines.remove(r)
                 removed = removed + 1
                 bb.event.fire(bb.event.ProcessProgress(msg, removed), d)
-                bb.event.check_for_interrupts()
+                bb.event.check_for_interrupts(d)
 
             bb.event.fire(bb.event.ProcessFinished(msg), d)
 
@@ -1366,7 +1366,7 @@ python sstate_eventhandler_stalesstate() {
                     bb.utils.remove(stamp)
                 removed = removed + 1
                 bb.event.fire(bb.event.ProcessProgress(msg, removed), d)
-                bb.event.check_for_interrupts()
+                bb.event.check_for_interrupts(d)
 
             bb.event.fire(bb.event.ProcessFinished(msg), d)
 }

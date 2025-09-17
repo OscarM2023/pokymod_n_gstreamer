@@ -13,6 +13,7 @@ DEPENDS     = "cwautomacros-native"
 
 inherit autotools texinfo update-alternatives
 
+
 EXTRA_OECONF = "--disable-iberty"
 
 SRC_URI = "${GNU_MIRROR}/which/which-${PV}.tar.gz \

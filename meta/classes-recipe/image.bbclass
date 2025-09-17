@@ -30,7 +30,7 @@ POPULATE_SDK_POST_TARGET_COMMAND += "rootfs_sysroot_relativelinks"
 
 LICENSE ?= "MIT"
 PACKAGES = ""
-DEPENDS += "depmodwrapper-cross cross-localedef-native"
+DEPENDS += "${@' '.join(["%s-qemuwrapper-cross" % m for m in d.getVar("MULTILIB_VARIANTS").split()])} qemuwrapper-cross depmodwrapper-cross cross-localedef-native"
 RDEPENDS += "${PACKAGE_INSTALL} ${LINGUAS_INSTALL} ${IMAGE_INSTALL_DEBUGFS}"
 RRECOMMENDS += "${PACKAGE_INSTALL_ATTEMPTONLY}"
 PATH:prepend = "${@":".join(all_multilib_tune_values(d, 'STAGING_BINDIR_CROSS').split())}:"
@@ -198,6 +198,8 @@ IMAGE_LOCALES_ARCHIVE ?= '1'
 # Prefer image, but use the fallback files for lookups if the image ones
 # aren't yet available.
 PSEUDO_PASSWD = "${IMAGE_ROOTFS}:${STAGING_DIR_NATIVE}"
+
+PSEUDO_IGNORE_PATHS .= ",${WORKDIR}/intercept_scripts,${WORKDIR}/oe-rootfs-repo,${WORKDIR}/sstate-build-image_complete"
 
 PACKAGE_EXCLUDE ??= ""
 PACKAGE_EXCLUDE[type] = "list"
@@ -481,7 +483,6 @@ python () {
             for ctype in sorted(ctypes):
                 if bt.endswith("." + ctype):
                     type = bt[0:-len(ctype) - 1]
-                    original_type = type
                     if type.startswith("debugfs_"):
                         type = type[8:]
                     # Create input image first.
@@ -494,7 +495,7 @@ python () {
                     subimage = type + "." + ctype
                     if subimage not in subimages:
                         subimages.append(subimage)
-                    if original_type not in alltypes:
+                    if type not in alltypes:
                         rm_tmp_images.add(localdata.expand("${IMAGE_NAME}.${type}"))
 
         for bt in basetypes[t]:
@@ -664,8 +665,6 @@ python write_image_output_manifest() {
 MULTILIBRE_ALLOW_REP += "${base_bindir} ${base_sbindir} ${bindir} ${sbindir} ${libexecdir} ${sysconfdir} ${nonarch_base_libdir}/udev /lib/modules/[^/]*/modules.*"
 MULTILIB_CHECK_FILE = "${WORKDIR}/multilib_check.py"
 MULTILIB_TEMP_ROOTFS = "${WORKDIR}/multilib"
-
-PSEUDO_INCLUDE_PATHS .= ",${MULTILIB_TEMP_ROOTFS}"
 
 do_fetch[noexec] = "1"
 do_unpack[noexec] = "1"

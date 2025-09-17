@@ -14,6 +14,7 @@ FILES:${PN}-tests += " \
     ${PYTHON_SITEPACKAGES_DIR}/psutil/__pycache__/test* \
 "
 
+
 RDEPENDS:${PN} += " \
     python3-shell \
     python3-threading \

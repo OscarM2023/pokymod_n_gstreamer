@@ -84,6 +84,9 @@ class FlattenVisitor(LicenseVisitor):
         self.licenses = []
         LicenseVisitor.__init__(self)
 
+    def visit_Str(self, node):
+        self.licenses.append(node.s)
+
     def visit_Constant(self, node):
         self.licenses.append(node.value)
 
@@ -170,8 +173,8 @@ class ManifestVisitor(LicenseVisitor):
         LicenseVisitor.__init__(self)
 
     def visit(self, node):
-        if isinstance(node, ast.Constant):
-            lic = node.value
+        if isinstance(node, ast.Str):
+            lic = node.s
 
             if license_ok(self._canonical_license(self._d, lic),
                     self._dont_want_licenses) == True:
@@ -236,6 +239,9 @@ class ListVisitor(LicenseVisitor):
     """Record all different licenses found in the license string"""
     def __init__(self):
         self.licenses = set()
+
+    def visit_Str(self, node):
+        self.licenses.add(node.s)
 
     def visit_Constant(self, node):
         self.licenses.add(node.value)
@@ -456,18 +462,3 @@ def skip_incompatible_package_licenses(d, pkgs):
             skipped_pkgs[pkg] = incompatible_lic
 
     return skipped_pkgs
-
-def tidy_licenses(value):
-    """
-    Flat, split and sort licenses.
-    """
-    from oe.license import flattened_licenses
-
-    def _choose(a, b):
-        str_a, str_b  = sorted((" & ".join(a), " & ".join(b)), key=str.casefold)
-        return ["(%s | %s)" % (str_a, str_b)]
-
-    if not isinstance(value, str):
-        value = " & ".join(value)
-
-    return sorted(list(set(flattened_licenses(value, _choose))), key=str.casefold)

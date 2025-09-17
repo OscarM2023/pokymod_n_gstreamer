@@ -7,6 +7,7 @@ LIC_FILES_CHKSUM = "file://Copying;md5=5b122a36d0f6dc55279a0ebc69f3c60b \
                     file://Artistic;md5=71a4d5d9acc18c0952a6df2218bb68da \
                     "
 
+
 SRC_URI = "https://www.cpan.org/src/5.0/perl-${PV}.tar.gz;name=perl \
            file://perl-rdepends.txt \
            file://0001-Somehow-this-module-breaks-through-the-perl-wrapper-.patch \
@@ -49,13 +50,6 @@ PACKAGECONFIG_CONFARGS:append:libc-musl = " -Dperl_lc_all_category_positions_ini
 export ENC2XS_NO_COMMENTS = "1"
 
 CFLAGS += "-D_GNU_SOURCE -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64"
-
-# Perl built with clang runs into sefaults with clang-21+
-# https://github.com/llvm/llvm-project/issues/152241
-CFLAGS:append:toolchain-clang = " -fno-strict-aliasing"
-
-# Needed with -march=x86-64-v3
-CFLAGS:append:toolchain-gcc:class-target:x86-64 = " -fno-builtin-memcpy -D__NO_STRING_INLINES -U_FORTIFY_SOURCE"
 
 do_configure:prepend() {
     rm -rf ${B}

@@ -7,7 +7,7 @@ SECTION = "kernel"
 
 LICENSE = "GPL-2.0-only"
 
-inherit kernelsrc
+inherit linux-kernel-base
 
 # Whilst not a module, this ensures we don't get multilib extended (which would make no sense)
 inherit module-base
@@ -20,10 +20,14 @@ do_install[depends] += "virtual/kernel:do_shared_workdir"
 do_install[depends] += "virtual/kernel:do_install"
 
 # There's nothing to do here, except install the source where we can package it
+do_fetch[noexec] = "1"
+do_unpack[noexec] = "1"
+do_patch[noexec] = "1"
 do_configure[noexec] = "1"
 do_compile[noexec] = "1"
 deltask do_populate_sysroot
 
+S = "${STAGING_KERNEL_DIR}"
 B = "${STAGING_KERNEL_BUILDDIR}"
 
 PACKAGE_ARCH = "${MACHINE_ARCH}"
@@ -71,8 +75,7 @@ do_install() {
         if [ -s Module.symvers ]; then
             cp Module.symvers $kerneldir/build
         fi
-        cp System.map-* $kerneldir/build
-        ln -s System.map-* $kerneldir/build/System.map
+        cp System.map* $kerneldir/build
         if [ -s Module.markers ]; then
             cp Module.markers $kerneldir/build
         fi
@@ -208,13 +211,6 @@ do_install() {
         fi
 
         if [ "${ARCH}" = "powerpc" ]; then
-            # Copy scripts that are needed by powperpc build, but don't error if they aren't present in the source.
-            # 4.18+ needs gcc-check-mprofile-kernel.sh for MPROFILE_KERNEL, for example.
-            # See https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/commit/?id=abba759796f9b73eb24df9b734dd063839fc62e0
-            for script in gcc-check-mprofile-kernel.sh gcc-check-fpatchable-function-entry.sh head_check.sh relocs_check.sh unrel_branch_check.sh; do
-                cp -a --parents arch/powerpc/tools/$script $kerneldir/build/ 2>/dev/null || :
-            done
-
             # 5.0 needs these files, but don't error if they aren't present in the source
             cp -a --parents arch/${ARCH}/kernel/syscalls/syscall.tbl $kerneldir/build/ 2>/dev/null || :
             cp -a --parents arch/${ARCH}/kernel/syscalls/syscalltbl.sh $kerneldir/build/ 2>/dev/null || :
@@ -301,7 +297,6 @@ do_install() {
             cp -a --parents arch/x86/tools/relocs_common.c $kerneldir/build/
             cp -a --parents arch/x86/tools/relocs.h $kerneldir/build/
             cp -a --parents arch/x86/tools/gen-insn-attr-x86.awk $kerneldir/build/ 2>/dev/null || :
-            cp -a --parents arch/x86/tools/cpufeaturemasks.awk $kerneldir/build/ 2>/dev/null || :
             cp -a --parents arch/x86/purgatory/purgatory.c $kerneldir/build/
 
             # 4.18 + have unified the purgatory files, so we ignore any errors if

@@ -15,22 +15,30 @@ SECTION = "base"
 DEPENDS = "expat glib-2.0 virtual/libintl dbus-glib-native dbus"
 DEPENDS:class-native = "glib-2.0-native dbus-native"
 
-SRC_URI = "https://dbus.freedesktop.org/releases/dbus-glib/dbus-glib-${PV}.tar.gz"
+SRC_URI = "https://dbus.freedesktop.org/releases/dbus-glib/dbus-glib-${PV}.tar.gz \
+           file://no-examples.patch \
+           file://test-install-makefile.patch \
+"
 SRC_URI[sha256sum] = "c09c5c085b2a0e391b8ee7d783a1d63fe444e96717cc1814d61b5e8fc2827a7c"
 
 inherit autotools pkgconfig gettext bash-completion gtk-doc
 
-EXTRA_OECONF:class-target = "--with-dbus-binding-tool=${STAGING_BINDIR_NATIVE}/dbus-binding-tool"
-EXTRA_OECONF:class-nativesdk = "--with-dbus-binding-tool=${STAGING_BINDIR_NATIVE}/dbus-binding-tool"
+#default disable regression tests, some unit test code in non testing code
+#PACKAGECONFIG:pn-${PN} = "tests" enable regression tests local.conf
+PACKAGECONFIG ??= ""
+PACKAGECONFIG[tests] = "--enable-tests,,,"
 
-PACKAGES += "${PN}-tools"
+EXTRA_OECONF:class-target = "--with-dbus-binding-tool=${STAGING_BINDIR_NATIVE}/dbus-binding-tool"
+
+PACKAGES += "${PN}-tests"
 
 FILES:${PN} = "${libdir}/lib*${SOLIBS}"
 FILES:${PN}-bash-completion += "${libexecdir}/dbus-bash-completion-helper"
 LICENSE:${PN}-bash-completion = "GPL-2.0-or-later"
+FILES:${PN}-dev += "${libdir}/dbus-1.0/include ${bindir}/dbus-glib-tool"
+FILES:${PN}-dev += "${bindir}/dbus-binding-tool"
 
-RDEPENDS:${PN}-dev += "${PN}-tools"
+RDEPENDS:${PN}-tests += "dbus"
+FILES:${PN}-tests = "${datadir}/${BPN}/tests"
 
-FILES:${PN}-tools = "${bindir}"
-
-BBCLASSEXTEND = "native nativesdk"
+BBCLASSEXTEND = "native"

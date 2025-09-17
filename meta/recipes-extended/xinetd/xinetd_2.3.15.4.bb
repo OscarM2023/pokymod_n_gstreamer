@@ -8,13 +8,14 @@ LIC_FILES_CHKSUM = "file://COPYRIGHT;md5=55c5fdf02cfcca3fc9621b6f2ceae10f"
 UPSTREAM_CHECK_GITTAGREGEX = "(?P<pver>\d+(\.\d+)+)"
 
 SRC_URI = "git://github.com/openSUSE/xinetd.git;protocol=https;branch=master \
-           file://0001-Use-monotonic-time.patch \
            file://xinetd.init \
            file://xinetd.default \
            file://xinetd.service \
            "
 
 SRCREV = "6a4af7786630ce48747d9687e2f18f45ea6684c4"
+
+S = "${WORKDIR}/git"
 
 # https://github.com/xinetd-org/xinetd/pull/10 is merged into this git tree revision
 CVE_STATUS[CVE-2013-4342] = "fixed-version: Fixed directly in git tree revision"

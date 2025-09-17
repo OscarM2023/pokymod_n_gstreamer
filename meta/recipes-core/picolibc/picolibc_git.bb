@@ -28,6 +28,7 @@ PACKAGECONFIG ??= " specsdir"
 # Install GCC specs on libdir
 PACKAGECONFIG[specsdir] = "-Dspecsdir=${libdir},-Dspecsdir=none"
 
+
 FILES:${PN}-dev:append = " ${libdir}/*.specs ${libdir}/*.ld"
 
 # No rpm package is actually created but -dev depends on it, avoid dnf error

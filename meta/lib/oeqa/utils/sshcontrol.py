@@ -58,7 +58,7 @@ class SSHProcess(object):
                         data = os.read(self.process.stdout.fileno(), 1024)
                         if not data:
                             self.process.poll()
-                            if self.process.returncode is not None:
+                            if self.process.returncode is None:
                                 self.process.stdout.close()
                                 eof = True
                         else:

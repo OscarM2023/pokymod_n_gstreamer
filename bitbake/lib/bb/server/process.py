@@ -13,7 +13,7 @@
 import bb
 import bb.event
 import logging
-from bb import multiprocessing
+import multiprocessing
 import threading
 import array
 import os
@@ -80,6 +80,9 @@ class idleFinish():
          self.msg = msg
 
 class ProcessServer():
+    profile_filename = "profile.log"
+    profile_processed_filename = "profile.log.processed"
+
     def __init__(self, lock, lockname, sock, sockname, server_timeout, xmlrpcinterface):
         self.command_channel = False
         self.command_channel_reply = False
@@ -137,7 +140,23 @@ class ProcessServer():
             serverlog("Error writing to lock file: %s" % str(e))
             pass
 
-        return bb.utils.profile_function("main" in self.cooker.configuration.profile, self.main, "profile-mainloop.log")
+        if self.cooker.configuration.profile:
+            try:
+                import cProfile as profile
+            except:
+                import profile
+            prof = profile.Profile()
+
+            ret = profile.Profile.runcall(prof, self.main)
+
+            prof.dump_stats("profile.log")
+            bb.utils.process_profilelog("profile.log")
+            serverlog("Raw profiling information saved to profile.log and processed statistics to profile.log.processed")
+
+        else:
+            ret = self.main()
+
+        return ret
 
     def _idle_check(self):
         return len(self._idlefuns) == 0 and self.cooker.command.currentAsyncCommand is None
@@ -398,7 +417,20 @@ class ProcessServer():
                 serverlog("".join(msg))
 
     def idle_thread(self):
-        bb.utils.profile_function("idle" in self.cooker.configuration.profile, self.idle_thread_internal, "profile-idleloop.log")
+        if self.cooker.configuration.profile:
+            try:
+                import cProfile as profile
+            except:
+                import profile
+            prof = profile.Profile()
+
+            ret = profile.Profile.runcall(prof, self.idle_thread_internal)
+
+            prof.dump_stats("profile-mainloop.log")
+            bb.utils.process_profilelog("profile-mainloop.log")
+            serverlog("Raw profiling information saved to profile-mainloop.log and processed statistics to profile-mainloop.log.processed")
+        else:
+            self.idle_thread_internal()
 
     def idle_thread_internal(self):
         def remove_idle_func(function):
@@ -600,7 +632,7 @@ class BitBakeServer(object):
         os.set_inheritable(self.bitbake_lock.fileno(), True)
         os.set_inheritable(self.readypipein, True)
         serverscript = os.path.realpath(os.path.dirname(__file__) + "/../../../bin/bitbake-server")
-        os.execl(sys.executable, sys.executable, serverscript, "decafbad", str(self.bitbake_lock.fileno()), str(self.readypipein), self.logfile, self.bitbake_lock.name, self.sockname,  str(self.server_timeout or 0), str(list(self.profile)), str(self.xmlrpcinterface[0]), str(self.xmlrpcinterface[1]))
+        os.execl(sys.executable, sys.executable, serverscript, "decafbad", str(self.bitbake_lock.fileno()), str(self.readypipein), self.logfile, self.bitbake_lock.name, self.sockname,  str(self.server_timeout or 0), str(int(self.profile)), str(self.xmlrpcinterface[0]), str(self.xmlrpcinterface[1]))
 
 def execServer(lockfd, readypipeinfd, lockname, sockname, server_timeout, xmlrpcinterface, profile):
 

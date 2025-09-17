@@ -207,25 +207,30 @@ python multilib_virtclass_handler_global () {
 
             variants = (d.getVar("MULTILIB_VARIANTS") or "").split()
 
+            import oe.classextend
+            clsextends = []
+            for variant in variants:
+                clsextends.append(oe.classextend.ClassExtender(variant, localdata))
+
             # Process PROVIDES
             origprovs = provs = localdata.getVar("PROVIDES") or ""
-            for variant in variants:
-                provs = provs + " " + oe.classextend.suffix_filter_deps(localdata.getVar("PROVIDES") or "", variant, variants)
+            for clsextend in clsextends:
+                provs = provs + " " + clsextend.map_variable("PROVIDES", setvar=False)
             d.setVar("PROVIDES", provs)
 
             # Process RPROVIDES
             origrprovs = rprovs = localdata.getVar("RPROVIDES") or ""
-            for variant in variants:
-                rprovs = rprovs + " " + oe.classextend.suffix_filter_deps(localdata.getVar("RPROVIDES") or "", variant, variants)
+            for clsextend in clsextends:
+                rprovs = rprovs + " " + clsextend.map_variable("RPROVIDES", setvar=False)
             if rprovs.strip():
                 d.setVar("RPROVIDES", rprovs)
 
             # Process RPROVIDES:${PN}...
             for pkg in (d.getVar("PACKAGES") or "").split():
                 origrprovs = rprovs = localdata.getVar("RPROVIDES:%s" % pkg) or ""
-                for variant in variants:
-                    rprovs = rprovs + " " + oe.classextend.suffix_filter_deps(localdata.getVar("RPROVIDES:%s" % pkg) or "", variant, variants)
-                    rprovs = rprovs + " " + variant + "-" + pkg
+                for clsextend in clsextends:
+                    rprovs = rprovs + " " + clsextend.map_variable("RPROVIDES:%s" % pkg, setvar=False)
+                    rprovs = rprovs + " " + clsextend.extname + "-" + pkg
                 d.setVar("RPROVIDES:%s" % pkg, rprovs)
 }
 

@@ -67,16 +67,13 @@ class RustSelfTestSystemEmulated(OESelftestTestCase, OEPTestResultTestCase):
                             'src/etc/test-float-parse',
                             'src/librustdoc',
                             'src/rustdoc-json-types',
-                            'src/tools/coverage-dump',
                             'src/tools/jsondoclint',
                             'src/tools/lint-docs',
                             'src/tools/replace-version-placeholder',
                             'src/tools/rust-analyzer',
                             'src/tools/rustdoc-themes',
                             'src/tools/rust-installer',
-                            'src/tools/test-float-parse',
                             'src/tools/suggest-tests',
-                            'src/tools/tidy',
                             'tests/assembly/asm/aarch64-outline-atomics.rs',
                             'tests/codegen/issues/issue-122805.rs',
                             'tests/codegen/thread-local.rs',
@@ -89,7 +86,6 @@ class RustSelfTestSystemEmulated(OESelftestTestCase, OEPTestResultTestCase):
                             'tests/ui/abi/stack-probes-lto.rs',
                             'tests/ui/abi/stack-probes.rs',
                             'tests/ui/codegen/mismatched-data-layouts.rs',
-                            'tests/codegen/rust-abi-arch-specific-adjustment.rs',
                             'tests/ui/debuginfo/debuginfo-emit-llvm-ir-and-split-debuginfo.rs',
                             'tests/ui/feature-gates/version_check.rs',
                             'tests/ui-fulldeps/',
@@ -99,7 +95,7 @@ class RustSelfTestSystemEmulated(OESelftestTestCase, OEPTestResultTestCase):
 
         exclude_fail_tests = " ".join([" --exclude " + item for item in exclude_list])
         # Add exclude_fail_tests with other test arguments
-        testargs =  exclude_fail_tests + " --no-doc --no-fail-fast --bless"
+        testargs =  exclude_fail_tests + " --no-fail-fast --bless"
 
         # wrap the execution with a qemu instance.
         # Tests are run with 512 tasks in parallel to execute all tests very quickly
@@ -107,7 +103,7 @@ class RustSelfTestSystemEmulated(OESelftestTestCase, OEPTestResultTestCase):
             # Copy remote-test-server to image through scp
             host_sys = get_bb_var("RUST_BUILD_SYS", "rust")
             ssh = SSHControl(ip=qemu.ip, logfile=qemu.sshlog, user="root")
-            ssh.copy_to(builddir + "/build/" + host_sys + "/stage2-tools-bin/remote-test-server","~/")
+            ssh.copy_to(builddir + "/build/" + host_sys + "/stage1-tools-bin/remote-test-server","~/")
             # Execute remote-test-server on image through background ssh
             command = '~/remote-test-server --bind 0.0.0.0:12345 -v'
             sshrun=subprocess.Popen(("ssh", '-o',  'UserKnownHostsFile=/dev/null', '-o',  'StrictHostKeyChecking=no', '-f', "root@%s" % qemu.ip, command), shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)

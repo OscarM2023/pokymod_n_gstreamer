@@ -141,25 +141,6 @@ overview of their function and contents.
       The default umask to apply to tasks if specified and no task specific
       umask flag is set.
 
-   :term:`BB_DEFER_BBCLASSES`
-      The classes listed in this variable have their :ref:`inherit
-      <ref-bitbake-user-manual-metadata-inherit>` calls automatically promoted
-      to deferred inherits. See :ref:`inherit_defer
-      <ref-bitbake-user-manual-metadata-inherit-defer>` for more information on
-      deferred inherits.
-
-      This means that if :term:`BB_DEFER_BBCLASSES` is set as follows::
-
-         BB_DEFER_BBCLASSES = "foo"
-
-      The following statement::
-
-         inherit foo
-
-      Will automatically be equal to calling::
-
-         inherit_defer foo
-
    :term:`BB_DISKMON_DIRS`
       Monitors disk space and available inodes during the build and allows
       you to control the build based on these parameters.
@@ -328,11 +309,6 @@ overview of their function and contents.
       generation if it is not desired.
 
       For example usage, see :term:`BB_GIT_SHALLOW`.
-
-   :term:`BB_GIT_DEFAULT_DESTSUFFIX`
-      The default destination directory where the :ref:`Git fetcher
-      <git-fetcher>` unpacks the source code. If this variable is not set, the
-      source code is unpacked in a directory named "git".
 
    :term:`BB_GIT_SHALLOW`
       Setting this variable to "1" enables the support for fetching, using and
@@ -557,28 +533,11 @@ overview of their function and contents.
       version 4.20 expose under ``/proc/pressure``. The threshold represents
       the difference in "total" pressure from the previous second. The
       minimum value is 1.0 (extremely slow builds) and the maximum is
-      1000000 (a pressure value unlikely to ever be reached). See
-      https://docs.kernel.org/accounting/psi.html for more information.
+      1000000 (a pressure value unlikely to ever be reached).
 
-      A default value to limit the CPU pressure to be set in ``conf/local.conf``
-      could be::
+      This threshold can be set in ``conf/local.conf`` as::
 
-         BB_PRESSURE_MAX_CPU = "15000"
-
-      Multiple values should be tested on the build host to determine what suits
-      best, depending on the need for performance versus load average during
-      the build.
-
-      .. note::
-
-         You may see numerous messages printed by BitBake in case the
-         :term:`BB_PRESSURE_MAX_CPU` is too low::
-
-            Pressure status changed to CPU: True, IO: False, Mem: False (CPU: 1105.9/2.0, IO: 0.0/2.0, Mem: 0.0/2.0) - using 1/64 bitbake threads
-
-         This means that the :term:`BB_PRESSURE_MAX_CPU` should be increased to
-         a reasonable value for limiting the CPU pressure on the system.
-         Monitor the varying value after ``CPU:`` above to set a sensible value.
+         BB_PRESSURE_MAX_CPU = "500"
 
    :term:`BB_PRESSURE_MAX_IO`
       Specifies a maximum I/O pressure threshold, above which BitBake's
@@ -590,34 +549,14 @@ overview of their function and contents.
       version 4.20 expose under ``/proc/pressure``. The threshold represents
       the difference in "total" pressure from the previous second. The
       minimum value is 1.0 (extremely slow builds) and the maximum is
-      1000000 (a pressure value unlikely to ever be reached). See
-      https://docs.kernel.org/accounting/psi.html for more information.
+      1000000 (a pressure value unlikely to ever be reached).
 
       At this point in time, experiments show that IO pressure tends to
       be short-lived and regulating just the CPU with
       :term:`BB_PRESSURE_MAX_CPU` can help to reduce it.
 
-      A default value to limit the IO pressure to be set in ``conf/local.conf``
-      could be::
-
-         BB_PRESSURE_MAX_IO = "15000"
-
-      Multiple values should be tested on the build host to determine what suits
-      best, depending on the need for performance versus I/O usage during the
-      build.
-
-      .. note::
-
-         You may see numerous messages printed by BitBake in case the
-         :term:`BB_PRESSURE_MAX_IO` is too low::
-
-            Pressure status changed to CPU: None, IO: True, Mem: False (CPU: 2236.0/None, IO: 153.6/2.0, Mem: 0.0/2.0) - using 19/64 bitbake threads
-
-         This means that the :term:`BB_PRESSURE_MAX_IO` should be increased to
-         a reasonable value for limiting the I/O pressure on the system.
-         Monitor the varying value after ``IO:`` above to set a sensible value.
-
    :term:`BB_PRESSURE_MAX_MEMORY`
+
       Specifies a maximum memory pressure threshold, above which BitBake's
       scheduler will not start new tasks (providing there is at least
       one active task). If no value is set, memory pressure is not
@@ -627,34 +566,13 @@ overview of their function and contents.
       version 4.20 expose under ``/proc/pressure``. The threshold represents
       the difference in "total" pressure from the previous second. The
       minimum value is 1.0 (extremely slow builds) and the maximum is
-      1000000 (a pressure value unlikely to ever be reached). See
-      https://docs.kernel.org/accounting/psi.html for more information.
+      1000000 (a pressure value unlikely to ever be reached).
 
       Memory pressure is experienced when time is spent swapping,
       refaulting pages from the page cache or performing direct reclaim.
       This is why memory pressure is rarely seen, but setting this variable
       might be useful as a last resort to prevent OOM errors if they are
       occurring during builds.
-
-      A default value to limit the memory pressure to be set in
-      ``conf/local.conf`` could be::
-
-         BB_PRESSURE_MAX_MEMORY = "15000"
-
-      Multiple values should be tested on the build host to determine what suits
-      best, depending on the need for performance versus memory consumption
-      during the build.
-
-      .. note::
-
-         You may see numerous messages printed by BitBake in case the
-         :term:`BB_PRESSURE_MAX_MEMORY` is too low::
-
-            Pressure status changed to CPU: None, IO: False, Mem: True (CPU: 29.5/None, IO: 0.0/2.0, Mem: 2553.3/2.0) - using 17/64 bitbake threads
-
-         This means that the :term:`BB_PRESSURE_MAX_MEMORY` should be increased to
-         a reasonable value for limiting the memory pressure on the system.
-         Monitor the varying value after ``Mem:`` above to set a sensible value.
 
    :term:`BB_RUNFMT`
       Specifies the name of the executable script files (i.e. run files)
@@ -770,11 +688,11 @@ overview of their function and contents.
       .. note::
 
          In order for your I/O priority settings to take effect, you need the
-         Budget Fair Queuing (BFQ) Scheduler selected for the backing block
+         Completely Fair Queuing (CFQ) Scheduler selected for the backing block
          device. To select the scheduler, use the following command form where
          device is the device (e.g. sda, sdb, and so forth)::
 
-            $ sudo sh -c "echo bfq > /sys/block/device/queue/scheduler"
+            $ sudo sh -c "echo cfq > /sys/block/device/queu/scheduler"
 
    :term:`BB_TASK_NICE_LEVEL`
       Allows specific tasks to change their priority (i.e. nice level).

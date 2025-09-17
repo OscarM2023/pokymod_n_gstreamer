@@ -138,18 +138,38 @@ python native_virtclass_handler () {
     if "native" not in classextend:
         return
 
-    def map_dependencies(varname, d, suffix, selfref=True, regex=False):
-        varname = varname + ":" + suffix
+    def map_dependencies(varname, d, suffix = "", selfref=True, regex=False):
+        if suffix:
+            varname = varname + ":" + suffix
+        deps = d.getVar(varname)
+        if not deps:
+            return
+        deps = bb.utils.explode_deps(deps)
+        newdeps = []
+        for dep in deps:
+            if regex and dep.startswith("^") and dep.endswith("$"):
+                newdeps.append(dep[:-1].replace(pn, bpn) + "-native$")
+            elif dep == pn:
+                if not selfref:
+                    continue
+                newdeps.append(dep)
+            elif "-cross-" in dep:
+                newdeps.append(dep.replace("-cross", "-native"))
+            elif not dep.endswith("-native"):
+                # Replace ${PN} with ${BPN} in the dependency to make sure
+                # dependencies on, e.g., ${PN}-foo become ${BPN}-foo-native
+                # rather than ${BPN}-native-foo-native.
+                newdeps.append(dep.replace(pn, bpn) + "-native")
+            else:
+                newdeps.append(dep)
+        output_varname = varname
         # Handle ${PN}-xxx -> ${BPN}-xxx-native
         if suffix != "${PN}" and "${PN}" in suffix:
             output_varname = varname.replace("${PN}", "${BPN}") + "-native"
             d.renameVar(varname, output_varname)
+        d.setVar(output_varname, " ".join(newdeps))
 
-    d.setVarFilter("DEPENDS", "native_filter(val, '" + pn + "', '" + bpn + "', selfref=False)")
-
-    for varname in ["RDEPENDS", "RRECOMMENDS", "RSUGGESTS", "RPROVIDES", "RREPLACES"]:
-        d.setVarFilter(varname, "native_filter(val, '" + pn + "', '" + bpn + "')")
-
+    map_dependencies("DEPENDS", e.data, selfref=False)
     # We need to handle things like ${@bb.utils.contains('PTEST_ENABLED', '1', '${PN}-ptest', '', d)}
     # and not pass ${PN}-test since in the native case it would be ignored. This does mean we ignore
     # anonymous python derived PACKAGES entries.
@@ -161,9 +181,8 @@ python native_virtclass_handler () {
         map_dependencies("RSUGGESTS", e.data, pkg)
         map_dependencies("RPROVIDES", e.data, pkg)
         map_dependencies("RREPLACES", e.data, pkg)
-
-    d.setVarFilter("PACKAGES", "native_filter(val, '" + pn + "', '" + bpn + "')")
-    d.setVarFilter("PACKAGES_DYNAMIC", "native_filter(val, '" + pn + "', '" + bpn + "', regex=True)")
+    map_dependencies("PACKAGES", e.data)
+    map_dependencies("PACKAGES_DYNAMIC", e.data, regex=True)
 
     provides = e.data.getVar("PROVIDES")
     nprovides = []

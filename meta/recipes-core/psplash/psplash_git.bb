@@ -6,7 +6,7 @@ LICENSE = "GPL-2.0-or-later"
 LIC_FILES_CHKSUM = "file://psplash.h;beginline=1;endline=8;md5=8f232c1e95929eacab37f00900580224"
 DEPENDS = "gdk-pixbuf-native"
 
-SRCREV = "53ae74a36bf17675228552abb927d2f981940a6a"
+SRCREV = "1f64c654129fdb6a1b75d8c16e3bcdd986468083"
 PV = "0.1+git"
 
 SRC_URI = "git://git.yoctoproject.org/${BPN};branch=master;protocol=https \
@@ -61,6 +61,8 @@ python __anonymous() {
         if p == "psplash-default":
             d.appendVar("RDEPENDS:%s" % pn, " %s" % ep)
 }
+
+S = "${WORKDIR}/git"
 
 inherit autotools pkgconfig update-rc.d update-alternatives systemd
 

@@ -25,7 +25,6 @@ KCONF_AUDIT_LEVEL ?= "1"
 KCONF_BSP_AUDIT_LEVEL ?= "0"
 KMETA_AUDIT ?= "yes"
 KMETA_AUDIT_WERROR ?= ""
-KMETA_CONFIG_FEATURES ?= ""
 
 # returns local (absolute) path names for all valid patches in the
 # src_uri
@@ -299,11 +298,7 @@ do_kernel_metadata() {
 		elements="`echo -n ${bsp_definition} $sccs_defconfig ${sccs} ${patches} $KERNEL_FEATURES_FINAL`"
 		if [ -n "${elements}" ]; then
 			echo "${bsp_definition}" > ${S}/${meta_dir}/bsp_definition
-			echo "${KMETA_CONFIG_FEATURES}" | grep -q "prefer-modules"
-			if [ $? -eq 0 ]; then
-				scc_defines="-DMODULE_OR_Y=m"
-			fi
-			scc --force $scc_defines -o ${S}/${meta_dir}:cfg,merge,meta ${includes} $sccs_defconfig $bsp_definition $sccs $patches $KERNEL_FEATURES_FINAL
+			scc --force -o ${S}/${meta_dir}:cfg,merge,meta ${includes} $sccs_defconfig $bsp_definition $sccs $patches $KERNEL_FEATURES_FINAL
 			if [ $? -ne 0 ]; then
 				bbfatal_log "Could not generate configuration queue for ${KMACHINE}."
 			fi
@@ -388,19 +383,19 @@ do_kernel_checkout() {
 	set +e
 
 	source_dir=`echo ${S} | sed 's%/$%%'`
-	source_unpackdir="${UNPACKDIR}/${BB_GIT_DEFAULT_DESTSUFFIX}"
-	if [ -d "${source_unpackdir}" ]; then
+	source_workdir="${UNPACKDIR}/git"
+	if [ -d "${UNPACKDIR}/git/" ]; then
 		# case: git repository
-		# if S is UNPACKDIR/BB_GIT_DEFAULT_DESTSUFFIX, then we shouldn't be moving or deleting the tree.
-		if [ "${source_dir}" != "${source_unpackdir}" ]; then
-			if [ -d "${source_unpackdir}/.git" ]; then
+		# if S is WORKDIR/git, then we shouldn't be moving or deleting the tree.
+		if [ "${source_dir}" != "${source_workdir}" ]; then
+			if [ -d "${source_workdir}/.git" ]; then
 				# regular git repository with .git
 				rm -rf ${S}
-				mv ${source_unpackdir} ${S}
+				mv ${UNPACKDIR}/git ${S}
 			else
 				# create source for bare cloned git repository
-				git clone ${source_unpackdir} ${S}
-				rm -rf ${source_unpackdir}
+				git clone ${WORKDIR}/git ${S}
+				rm -rf ${UNPACKDIR}/git
 			fi
 		fi
 		cd ${S}

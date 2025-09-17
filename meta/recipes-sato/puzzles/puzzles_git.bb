@@ -10,9 +10,11 @@ REQUIRED_DISTRO_FEATURES = "x11"
 SRC_URI = "git://git.tartarus.org/simon/puzzles.git;branch=main;protocol=https"
 
 UPSTREAM_CHECK_COMMITS = "1"
-SRCREV = "a7c7826bce5cbb9b9c337c11b9b7f8b278e76fba"
+SRCREV = "7da46412223273b3adf6d513466342b9d3a5c869"
 PE = "2"
 PV = "0.0+git"
+
+S = "${WORKDIR}/git"
 
 inherit cmake features_check pkgconfig
 

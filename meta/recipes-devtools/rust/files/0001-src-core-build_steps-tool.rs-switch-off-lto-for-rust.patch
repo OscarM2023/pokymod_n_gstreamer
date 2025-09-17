@@ -24,55 +24,23 @@ diff --git a/src/bootstrap/src/core/build_steps/tool.rs b/src/bootstrap/src/core
 index 087df2f8a..00790affb 100644
 --- a/src/bootstrap/src/core/build_steps/tool.rs
 +++ b/src/bootstrap/src/core/build_steps/tool.rs
-@@ -15,14 +15,12 @@ use std::{env, fs};
- #[cfg(feature = "tracing")]
- use tracing::instrument;
-
--use crate::core::build_steps::compile::is_lto_stage;
- use crate::core::build_steps::toolstate::ToolState;
- use crate::core::build_steps::{compile, llvm};
- use crate::core::builder;
--use crate::core::builder::{
--    Builder, Cargo as CargoCommand, RunConfig, ShouldRun, Step, cargo_profile_var,
--};
--use crate::core::config::{DebuginfoLevel, RustcLto, TargetSelection};
-+
-+use crate::core::builder::{Builder, Cargo as CargoCommand, RunConfig, ShouldRun, Step};
-+use crate::core::config::{DebuginfoLevel, TargetSelection};
- use crate::utils::exec::{BootstrapCommand, command};
- use crate::utils::helpers::{add_dylib_path, exe, t};
- use crate::{Compiler, FileType, Kind, Mode, gha};
-@@ -171,20 +171,7 @@ impl Step for ToolBuild {
-             cargo.env("RUSTC_WRAPPER", ccache);
+@@ -635,7 +635,7 @@ impl Step for Rustdoc {
          }
-
--        // Rustc tools (miri, clippy, cargo, rustfmt, rust-analyzer)
--        // could use the additional optimizations.
--        if self.mode == Mode::ToolRustc && is_lto_stage(&self.compiler) {
--            let lto = match builder.config.rust_lto {
--                RustcLto::Off => Some("off"),
--                RustcLto::Thin => Some("thin"),
--                RustcLto::Fat => Some("fat"),
--                RustcLto::ThinLocal => None,
--            };
--            if let Some(lto) = lto {
--                cargo.env(cargo_profile_var("LTO", &builder.config), lto);
--            }
--        }
--
-+        cargo.rustflag("-Clto=off");
-         if !self.allow_features.is_empty() {
-             cargo.allow_features(self.allow_features);
-         }
-diff --git a/src/bootstrap/src/core/builder/mod.rs b/src/bootstrap/src/core/builder/mod.rs
---- a/src/bootstrap/src/core/builder/mod.rs
-+++ b/src/bootstrap/src/core/builder/mod.rs
-@@ -13,7 +13,7 @@
- #[cfg(feature = "tracing")]
- use tracing::instrument;
  
--pub use self::cargo::{Cargo, cargo_profile_var};
-+pub use self::cargo::Cargo;
- pub use crate::Compiler;
- use crate::core::build_steps::{
-     check, clean, clippy, compile, dist, doc, gcc, install, llvm, run, setup, test, tool, vendor,
+         // NOTE: Never modify the rustflags here, it breaks the build cache for other tools!
+-        let cargo = prepare_tool_cargo(
++        let mut cargo = prepare_tool_cargo(
+             builder,
+             build_compiler,
+             Mode::ToolRustc,
+@@ -645,6 +645,7 @@ impl Step for Rustdoc {
+             SourceType::InTree,
+             features.as_slice(),
+         );
++        cargo.rustflag("-Clto=off");
+ 
+         let _guard = builder.msg_tool(
+             Kind::Build,
+-- 
+2.39.5
+

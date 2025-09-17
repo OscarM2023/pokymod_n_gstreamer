@@ -153,7 +153,7 @@ class Wic(WicTestCase):
         # create a temporary file for the WKS content
         with NamedTemporaryFile("w", suffix=".wks") as wks:
             wks.write(
-                'part --source bootimg_efi '
+                'part --source bootimg-efi '
                 '--sourceparams="loader=grub-efi,install-kernel-into-boot-dir=false" '
                 '--label boot --active\n'
             )
@@ -186,7 +186,7 @@ class Wic(WicTestCase):
         # create a temporary file for the WKS content
         with NamedTemporaryFile("w", suffix=".wks") as wks:
             wks.write(
-                'part --source bootimg_efi '
+                'part --source bootimg-efi '
                 '--sourceparams="loader=grub-efi,install-kernel-into-boot-dir=true" '
                 '--label boot --active\n'
             )
@@ -214,47 +214,6 @@ class Wic(WicTestCase):
                 self.assertTrue(
                     found, "The kernel image '{}' was not found in the boot partition".format(kimgtype)
                 )
-
-    @skipIfNotArch(['x86_64'])
-    def test_grub_install_pcbios(self):
-        """
-        Test the installation of the grub modules + config
-        into the boot directory in the resulting wic image.
-        """
-
-        # create a temporary file for the WKS content
-        with NamedTemporaryFile("w", suffix=".wks") as wks:
-            wks.write(
-                'part --source bootimg_pcbios --sourceparams="loader-bios=grub" '
-                '--offset 1024 --fixed-size 78M --label boot --active\n'
-                'bootloader --ptable msdos --source bootimg_pcbios\n'
-            )
-            wks.flush()
-            # create a temporary directory to extract the disk image to
-            with TemporaryDirectory() as tmpdir:
-                img = "core-image-minimal"
-                config = 'DEPENDS:pn-%s += "grub-native grub"' % (img)
-
-                self.append_config(config)
-                bitbake(img)
-                self.remove_config(config)
-
-                cmd = "wic create %s -e %s -o %s" % (wks.name, img, self.resultdir)
-                runCmd(cmd)
-
-                wksname = os.path.splitext(os.path.basename(wks.name))[0]
-                out = glob(os.path.join(self.resultdir, "%s-*.direct" % wksname))
-                self.assertEqual(1, len(out))
-
-                sysroot = get_bb_var('RECIPE_SYSROOT_NATIVE', 'wic-tools')
-
-                # Check if grub.cfg is installed
-                result = runCmd("wic ls %s:1/boot/grub -n %s" % (out[0], sysroot))
-                self.assertIn('grub', result.output)
-
-                # Check if normal.mod is installed
-                result = runCmd("wic ls %s:1/boot/grub/i386-pc -n %s" % (out[0], sysroot))
-                self.assertIn('normal', result.output)
 
     def test_build_image_name(self):
         """Test wic create wictestdisk --image-name=core-image-minimal"""
@@ -487,9 +446,8 @@ class Wic(WicTestCase):
                 wks.write("""
 part / --source rootfs --ondisk mmcblk0 --fstype=ext4 --exclude-path usr
 part /usr --source rootfs --ondisk mmcblk0 --fstype=ext4 --rootfs-dir %s/usr
-part /etc --source rootfs --ondisk mmcblk0 --fstype=ext4 --exclude-path bin/ --rootfs-dir %s/usr
-part /mnt --source rootfs --ondisk mmcblk0 --fstype=ext4 --exclude-path bin/whoami --rootfs-dir %s/usr"""
-                          % (rootfs_dir, rootfs_dir, rootfs_dir))
+part /etc --source rootfs --ondisk mmcblk0 --fstype=ext4 --exclude-path bin/ --rootfs-dir %s/usr"""
+                          % (rootfs_dir, rootfs_dir))
             runCmd("wic create %s -e core-image-minimal -o %s" \
                                        % (wks_file, self.resultdir))
 
@@ -508,9 +466,9 @@ part /mnt --source rootfs --ondisk mmcblk0 --fstype=ext4 --exclude-path bin/whoa
             # 1:0.00MiB:200MiB:200MiB:ext4::;\n
             partlns = res.output.splitlines()[2:]
 
-            self.assertEqual(4, len(partlns))
+            self.assertEqual(3, len(partlns))
 
-            for part in [1, 2, 3, 4]:
+            for part in [1, 2, 3]:
                 part_file = os.path.join(self.resultdir, "selftest_img.part%d" % part)
                 partln = partlns[part-1].split(":")
                 self.assertEqual(7, len(partln))
@@ -552,63 +510,12 @@ part /mnt --source rootfs --ondisk mmcblk0 --fstype=ext4 --exclude-path bin/whoa
             self.assertIn("..", files)
             self.assertEqual(2, len(files))
 
-            # Partition 4, should contain the same as partition 2, including the bin
-            # directory, but not whoami (a symlink to busybox.nosuid) inside it.
-            res = runCmd("debugfs -R 'ls -p' %s" % \
-                             os.path.join(self.resultdir, "selftest_img.part4"), stderr=subprocess.PIPE)
-            files = extract_files(res.output)
-            self.assertNotIn("etc", files)
-            self.assertNotIn("usr", files)
-            self.assertIn("share", files)
-            self.assertIn("bin", files)
-            res = runCmd("debugfs -R 'ls -p bin' %s" % \
-                             os.path.join(self.resultdir, "selftest_img.part4"), stderr=subprocess.PIPE)
-            files = extract_files(res.output)
-            self.assertIn(".", files)
-            self.assertIn("..", files)
-            self.assertIn("who", files)
-            self.assertNotIn("whoami", files)
-
-            for part in [1, 2, 3, 4]:
+            for part in [1, 2, 3]:
                 part_file = os.path.join(self.resultdir, "selftest_img.part%d" % part)
                 os.remove(part_file)
 
         finally:
             os.environ['PATH'] = oldpath
-
-    def test_exclude_path_with_extra_space(self):
-        """Test having --exclude-path with IMAGE_ROOTFS_EXTRA_SPACE. [Yocto #15555]"""
-
-        with NamedTemporaryFile("w", suffix=".wks") as wks:
-            wks.writelines(
-                ['bootloader --ptable gpt\n',
-                 'part /boot --size=100M --active --fstype=ext4 --label boot\n',
-                 'part /     --source rootfs      --fstype=ext4 --label root --exclude-path boot/\n'])
-            wks.flush()
-            config = 'IMAGE_ROOTFS_EXTRA_SPACE = "500000"\n'\
-                     'DEPENDS:pn-core-image-minimal += "wic-tools"\n'\
-                     'IMAGE_FSTYPES += "wic ext4"\n'\
-                     'WKS_FILE = "%s"\n' % wks.name
-            self.append_config(config)
-            bitbake('core-image-minimal')
-
-        """
-        the output of "wic ls <image>.wic" will look something like:
-            Num     Start        End          Size      Fstype
-             1         17408    136332287    136314880  ext4
-             2     136332288    171464703     35132416  ext4
-        we are looking for the size of partition 2
-        i.e. in this case the number 35,132,416
-        without the fix the size will be around 85,403,648
-        with the fix the size should be around 799,960,064
-        """
-        bb_vars = get_bb_vars(['DEPLOY_DIR_IMAGE', 'MACHINE'], 'core-image-minimal')
-        deploy_dir = bb_vars['DEPLOY_DIR_IMAGE']
-        machine = bb_vars['MACHINE']
-        nativesysroot = get_bb_var('RECIPE_SYSROOT_NATIVE', 'wic-tools')
-        wicout = glob(os.path.join(deploy_dir, "core-image-minimal-%s.rootfs-*.wic" % machine))[0]
-        size_of_root_partition = int(runCmd("wic ls %s --native-sysroot %s" % (wicout, nativesysroot)).output.split('\n')[2].split()[3])
-        self.assertGreater(size_of_root_partition, 500000000)
 
     def test_include_path(self):
         """Test --include-path wks option."""
@@ -1062,18 +969,6 @@ class Wic2(WicTestCase):
         """Test building wic images by bitbake"""
         config = 'IMAGE_FSTYPES += "wic"\nWKS_FILE = "wic-image-minimal"\n'\
                  'MACHINE_FEATURES:append = " efi"\n'
-        image_recipe_append = """
-do_image_wic[postfuncs] += "run_wic_cmd"
-run_wic_cmd() {
-    echo "test" >> ${WORKDIR}/test.wic-cp
-    wic cp --vars "${STAGING_DIR}/${MACHINE}/imgdata/" -e "${IMAGE_BASENAME}" ${WORKDIR}/test.wic-cp  ${IMGDEPLOYDIR}/${IMAGE_NAME}.wic:1/
-    wic ls --vars "${STAGING_DIR}/${MACHINE}/imgdata/" -e "${IMAGE_BASENAME}" ${IMGDEPLOYDIR}/${IMAGE_NAME}.wic:1/
-    wic rm --vars "${STAGING_DIR}/${MACHINE}/imgdata/" -e "${IMAGE_BASENAME}" ${IMGDEPLOYDIR}/${IMAGE_NAME}.wic:1/test.wic-cp
-    wic cp --vars "${STAGING_DIR}/${MACHINE}/imgdata/" -e "${IMAGE_BASENAME}" ${WORKDIR}/test.wic-cp  ${IMGDEPLOYDIR}/${IMAGE_NAME}.wic:1/
-}
-"""
-        self.write_recipeinc('images', image_recipe_append)
-
         self.append_config(config)
         image = 'wic-image-minimal'
         bitbake(image)
@@ -1081,11 +976,6 @@ run_wic_cmd() {
 
         bb_vars = get_bb_vars(['DEPLOY_DIR_IMAGE', 'IMAGE_LINK_NAME'], image)
         prefix = os.path.join(bb_vars['DEPLOY_DIR_IMAGE'], '%s.' % bb_vars['IMAGE_LINK_NAME'])
-
-        sysroot = get_bb_var('RECIPE_SYSROOT_NATIVE', 'wic-tools')
-        # check if file is there
-        result = runCmd("wic ls %s:1/ -n %s" % (prefix+"wic", sysroot))
-        self.assertIn("test.wic-cp", result.output)
 
         # check if we have result image and manifests symlinks
         # pointing to existing files
@@ -1102,25 +992,7 @@ run_wic_cmd() {
         config = 'IMAGE_FSTYPES += "wic"\nWKS_FILE = "wic-image-minimal"\n'\
                  'MACHINE_FEATURES:append = " efi"\n'
         self.append_config(config)
-        image_recipe_append = """
-do_image_wic[postfuncs] += "run_wic_cmd"
-run_wic_cmd() {
-    echo "test" >> ${WORKDIR}/test.wic-cp
-    wic cp --vars "${STAGING_DIR}/${MACHINE}/imgdata/" -e "${IMAGE_BASENAME}" ${WORKDIR}/test.wic-cp  ${IMGDEPLOYDIR}/${IMAGE_NAME}.wic:1/
-    wic ls --vars "${STAGING_DIR}/${MACHINE}/imgdata/" -e "${IMAGE_BASENAME}" ${IMGDEPLOYDIR}/${IMAGE_NAME}.wic:1/
-    wic rm --vars "${STAGING_DIR}/${MACHINE}/imgdata/" -e "${IMAGE_BASENAME}" ${IMGDEPLOYDIR}/${IMAGE_NAME}.wic:1/test.wic-cp
-    wic cp --vars "${STAGING_DIR}/${MACHINE}/imgdata/" -e "${IMAGE_BASENAME}" ${WORKDIR}/test.wic-cp  ${IMGDEPLOYDIR}/${IMAGE_NAME}.wic:1/
-}
-"""
-        self.write_recipeinc('images', image_recipe_append)
         bitbake('wic-image-minimal')
-
-        sysroot = get_bb_var('RECIPE_SYSROOT_NATIVE', 'wic-tools')
-        bb_vars = get_bb_vars(['DEPLOY_DIR_IMAGE', 'IMAGE_LINK_NAME'], "wic-image-minimal")
-        image_path = os.path.join(bb_vars['DEPLOY_DIR_IMAGE'], bb_vars['IMAGE_LINK_NAME'])
-        # check if file is there
-        result = runCmd("wic ls %s:1/ -n %s" % (image_path+".wic", sysroot))
-        self.assertIn("test.wic-cp", result.output)
         self.remove_config(config)
 
         runqemu_params = get_bb_var('TEST_RUNQEMUPARAMS', 'wic-image-minimal') or ""
@@ -1166,7 +1038,7 @@ run_wic_cmd() {
 
         return wkspath
 
-    def _get_wic(self, wkspath, ignore_status=False):
+    def _get_wic_partitions(self, wkspath, native_sysroot=None, ignore_status=False):
         p = runCmd("wic create %s -e core-image-minimal -o %s" % (wkspath, self.resultdir),
                    ignore_status=ignore_status)
 
@@ -1180,13 +1052,7 @@ run_wic_cmd() {
         if not wicout:
             return (p, None)
 
-        return (p, wicout[0])
-
-    def _get_wic_partitions(self, wkspath, native_sysroot=None, ignore_status=False):
-        p, wicimg = self._get_wic(wkspath, ignore_status)
-
-        if wicimg is None:
-            return (p, None)
+        wicimg = wicout[0]
 
         if not native_sysroot:
             native_sysroot = get_bb_var("RECIPE_SYSROOT_NATIVE", "wic-tools")
@@ -1232,71 +1098,71 @@ run_wic_cmd() {
         with NamedTemporaryFile("w", suffix=".wks") as tempf:
             # Test that partitions are placed at the correct offsets, default KB
             tempf.write("bootloader --ptable gpt\n" \
-                        "part /    --source rootfs --ondisk hda --offset 32     --fixed-size 200M --fstype=ext4\n" \
-                        "part /bar                 --ondisk hda --offset 204832 --fixed-size 100M --fstype=ext4\n")
+                        "part /    --source rootfs --ondisk hda --offset 32     --fixed-size 100M --fstype=ext4\n" \
+                        "part /bar                 --ondisk hda --offset 102432 --fixed-size 100M --fstype=ext4\n")
             tempf.flush()
 
             _, partlns = self._get_wic_partitions(tempf.name, native_sysroot)
             self.assertEqual(partlns, [
-                "1:32.0kiB:204832kiB:204800kiB:ext4:primary:;",
-                "2:204832kiB:307232kiB:102400kiB:ext4:primary:;",
+                "1:32.0kiB:102432kiB:102400kiB:ext4:primary:;",
+                "2:102432kiB:204832kiB:102400kiB:ext4:primary:;",
                 ])
 
         with NamedTemporaryFile("w", suffix=".wks") as tempf:
             # Test that partitions are placed at the correct offsets, same with explicit KB
             tempf.write("bootloader --ptable gpt\n" \
-                        "part /    --source rootfs --ondisk hda --offset 32K     --fixed-size 200M --fstype=ext4\n" \
-                        "part /bar                 --ondisk hda --offset 204832K --fixed-size 100M --fstype=ext4\n")
+                        "part /    --source rootfs --ondisk hda --offset 32K     --fixed-size 100M --fstype=ext4\n" \
+                        "part /bar                 --ondisk hda --offset 102432K --fixed-size 100M --fstype=ext4\n")
             tempf.flush()
 
             _, partlns = self._get_wic_partitions(tempf.name, native_sysroot)
             self.assertEqual(partlns, [
-                "1:32.0kiB:204832kiB:204800kiB:ext4:primary:;",
-                "2:204832kiB:307232kiB:102400kiB:ext4:primary:;",
+                "1:32.0kiB:102432kiB:102400kiB:ext4:primary:;",
+                "2:102432kiB:204832kiB:102400kiB:ext4:primary:;",
                 ])
 
         with NamedTemporaryFile("w", suffix=".wks") as tempf:
             # Test that partitions are placed at the correct offsets using MB
             tempf.write("bootloader --ptable gpt\n" \
-                        "part /    --source rootfs --ondisk hda --offset 32K  --fixed-size 200M --fstype=ext4\n" \
-                        "part /bar                 --ondisk hda --offset 201M --fixed-size 100M --fstype=ext4\n")
+                        "part /    --source rootfs --ondisk hda --offset 32K  --fixed-size 100M --fstype=ext4\n" \
+                        "part /bar                 --ondisk hda --offset 101M --fixed-size 100M --fstype=ext4\n")
             tempf.flush()
 
             _, partlns = self._get_wic_partitions(tempf.name, native_sysroot)
             self.assertEqual(partlns, [
-                "1:32.0kiB:204832kiB:204800kiB:ext4:primary:;",
-                "2:205824kiB:308224kiB:102400kiB:ext4:primary:;",
+                "1:32.0kiB:102432kiB:102400kiB:ext4:primary:;",
+                "2:103424kiB:205824kiB:102400kiB:ext4:primary:;",
                 ])
 
         with NamedTemporaryFile("w", suffix=".wks") as tempf:
             # Test that partitions can be placed on a 512 byte sector boundary
             tempf.write("bootloader --ptable gpt\n" \
-                        "part /    --source rootfs --ondisk hda --offset 65s --fixed-size 199M --fstype=ext4\n" \
-                        "part /bar                 --ondisk hda --offset 204832 --fixed-size 100M --fstype=ext4\n")
+                        "part /    --source rootfs --ondisk hda --offset 65s --fixed-size 99M --fstype=ext4\n" \
+                        "part /bar                 --ondisk hda --offset 102432 --fixed-size 100M --fstype=ext4\n")
             tempf.flush()
 
             _, partlns = self._get_wic_partitions(tempf.name, native_sysroot)
             self.assertEqual(partlns, [
-                "1:32.5kiB:203808kiB:203776kiB:ext4:primary:;",
-                "2:204832kiB:307232kiB:102400kiB:ext4:primary:;",
+                "1:32.5kiB:101408kiB:101376kiB:ext4:primary:;",
+                "2:102432kiB:204832kiB:102400kiB:ext4:primary:;",
                 ])
 
         with NamedTemporaryFile("w", suffix=".wks") as tempf:
             # Test that a partition can be placed immediately after a MSDOS partition table
             tempf.write("bootloader --ptable msdos\n" \
-                        "part /    --source rootfs --ondisk hda --offset 1s --fixed-size 200M --fstype=ext4\n")
+                        "part /    --source rootfs --ondisk hda --offset 1s --fixed-size 100M --fstype=ext4\n")
             tempf.flush()
 
             _, partlns = self._get_wic_partitions(tempf.name, native_sysroot)
             self.assertEqual(partlns, [
-                "1:0.50kiB:204800kiB:204800kiB:ext4::;",
+                "1:0.50kiB:102400kiB:102400kiB:ext4::;",
                 ])
 
         with NamedTemporaryFile("w", suffix=".wks") as tempf:
             # Test that image creation fails if the partitions would overlap
             tempf.write("bootloader --ptable gpt\n" \
-                        "part /    --source rootfs --ondisk hda --offset 32     --fixed-size 200M --fstype=ext4\n" \
-                        "part /bar                 --ondisk hda --offset 204831 --fixed-size 100M --fstype=ext4\n")
+                        "part /    --source rootfs --ondisk hda --offset 32     --fixed-size 100M --fstype=ext4\n" \
+                        "part /bar                 --ondisk hda --offset 102431 --fixed-size 100M --fstype=ext4\n")
             tempf.flush()
 
             p, _ = self._get_wic_partitions(tempf.name, ignore_status=True)
@@ -1305,18 +1171,18 @@ run_wic_cmd() {
         with NamedTemporaryFile("w", suffix=".wks") as tempf:
             # Test that partitions are not allowed to overlap with the booloader
             tempf.write("bootloader --ptable gpt\n" \
-                        "part /    --source rootfs --ondisk hda --offset 8 --fixed-size 200M --fstype=ext4\n")
+                        "part /    --source rootfs --ondisk hda --offset 8 --fixed-size 100M --fstype=ext4\n")
             tempf.flush()
 
             p, _ = self._get_wic_partitions(tempf.name, ignore_status=True)
             self.assertNotEqual(p.status, 0, "wic exited successfully when an error was expected:\n%s" % p.output)
 
-    def test_extra_filesystem_space(self):
+    def test_extra_space(self):
         native_sysroot = get_bb_var("RECIPE_SYSROOT_NATIVE", "wic-tools")
 
         with NamedTemporaryFile("w", suffix=".wks") as tempf:
             tempf.write("bootloader --ptable gpt\n" \
-                        "part /     --source rootfs --ondisk hda --extra-filesystem-space 200M --fstype=ext4\n")
+                        "part /     --source rootfs --ondisk hda --extra-space 200M --fstype=ext4\n")
             tempf.flush()
 
             _, partlns = self._get_wic_partitions(tempf.name, native_sysroot)
@@ -1325,45 +1191,6 @@ run_wic_cmd() {
             self.assertRegex(size, r'^[0-9]+kiB$')
             size = int(size[:-3])
             self.assertGreaterEqual(size, 204800)
-
-    def test_extra_partition_space(self):
-        native_sysroot = get_bb_var("RECIPE_SYSROOT_NATIVE", "wic-tools")
-
-        with NamedTemporaryFile("w", suffix=".wks") as tempf:
-            tempf.write("bootloader --ptable gpt\n" \
-                        "part                 --ondisk hda --size 10M        --extra-partition-space 10M --fstype=ext4\n" \
-                        "part                 --ondisk hda --fixed-size 20M  --extra-partition-space 10M --fstype=ext4\n" \
-                        "part --source rootfs --ondisk hda                   --extra-partition-space 10M --fstype=ext4\n" \
-                        "part --source rootfs --ondisk hda --fixed-size 200M --extra-partition-space 10M --fstype=ext4\n")
-            tempf.flush()
-
-            _, wicimg = self._get_wic(tempf.name)
-
-            res = runCmd("parted -m %s unit b p" % wicimg,
-                            native_sysroot=native_sysroot, stderr=subprocess.PIPE)
-
-            # parse parted output which looks like this:
-            # BYT;\n
-            # /var/tmp/wic/build/tmpfwvjjkf_-201611101222-hda.direct:200MiB:file:512:512:msdos::;\n
-            # 1:0.00MiB:200MiB:200MiB:ext4::;\n
-            partlns = res.output.splitlines()[2:]
-
-            self.assertEqual(4, len(partlns))
-
-            # Test for each partitions that the extra part space exists
-            for part in range(0, len(partlns)):
-                part_file = os.path.join(self.resultdir, "selftest_img.part%d" % (part + 1))
-                partln = partlns[part].split(":")
-                self.assertEqual(7, len(partln))
-                self.assertRegex(partln[3], r'^[0-9]+B$')
-                part_size = int(partln[3].rstrip("B"))
-                start = int(partln[1].rstrip("B")) / 512
-                length = part_size / 512
-                runCmd("dd if=%s of=%s skip=%d count=%d" %
-                                            (wicimg, part_file, start, length))
-                res = runCmd("dumpe2fs %s -h | grep \"^Block count\"" % part_file)
-                fs_size = int(res.output.split(":")[1].strip()) * 1024
-                self.assertLessEqual(fs_size + 10485760, part_size, "part file: %s" % part_file)
 
     # TODO this test could also work on aarch64
     @skipIfNotArch(['i586', 'i686', 'x86_64'])
@@ -1479,7 +1306,7 @@ run_wic_cmd() {
     def test_biosplusefi_plugin(self):
         """Test biosplusefi plugin"""
         # Wic generation below may fail depending on the order of the unittests
-        # This is because bootimg_pcbios (that bootimg_biosplusefi uses) generate its MBR inside STAGING_DATADIR directory
+        # This is because bootimg-pcbios (that bootimg-biosplusefi uses) generate its MBR inside STAGING_DATADIR directory
         #    which may or may not exists depending on what was built already
         # If an image hasn't been built yet, directory ${STAGING_DATADIR}/syslinux won't exists and _get_bootimg_dir()
         #   will raise with "Couldn't find correct bootimg_dir"
@@ -1491,7 +1318,7 @@ run_wic_cmd() {
 
         img = 'core-image-minimal'
         with NamedTemporaryFile("w", suffix=".wks") as wks:
-            wks.writelines(['part /boot --active --source bootimg_biosplusefi --sourceparams="loader=grub-efi"\n',
+            wks.writelines(['part /boot --active --source bootimg-biosplusefi --sourceparams="loader=grub-efi"\n',
                             'part / --source rootfs --fstype=ext4 --align 1024 --use-uuid\n'\
                             'bootloader --timeout=0 --append="console=ttyS0,115200n8"\n'])
             wks.flush()
@@ -1511,7 +1338,7 @@ run_wic_cmd() {
 
         img = 'core-image-minimal'
         with NamedTemporaryFile("w", suffix=".wks") as wks:
-            wks.writelines(['part /boot --source bootimg_efi --sourceparams="loader=uefi-kernel"\n'
+            wks.writelines(['part /boot --source bootimg-efi --sourceparams="loader=uefi-kernel"\n'
                             'part / --source rootfs --fstype=ext4 --align 1024 --use-uuid\n'\
                             'bootloader --timeout=0 --append="console=ttyS0,115200n8"\n'])
             wks.flush()

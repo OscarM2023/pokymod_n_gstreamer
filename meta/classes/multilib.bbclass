@@ -21,7 +21,6 @@ python multilib_virtclass_handler () {
     bpn = d.getVar("BPN")
     if ("virtual/kernel" in provides
             or bb.data.inherits_class('module-base', d)
-            or bb.data.inherits_class('kernel-fit-image', d)
             or bpn in non_ml_recipes):
         raise bb.parse.SkipRecipe("We shouldn't have multilib variants for %s" % bpn)
 
@@ -112,11 +111,11 @@ python __anonymous () {
         variant = d.getVar("BBEXTENDVARIANT")
         import oe.classextend
 
-        prefixes = (d.getVar("MULTILIB_VARIANTS") or "").split()
-        clsextend = oe.classextend.ClassExtender(variant, prefixes, d)
-        clsextend.set_filter("PACKAGE_INSTALL", deps=False)
-        clsextend.set_filter("LINGUAS_INSTALL", deps=False)
-        clsextend.set_filter("RDEPENDS", deps=True)
+        clsextend = oe.classextend.ClassExtender(variant, d)
+
+        clsextend.map_depends_variable("PACKAGE_INSTALL")
+        clsextend.map_depends_variable("LINGUAS_INSTALL")
+        clsextend.map_depends_variable("RDEPENDS")
         pinstall = d.getVar("LINGUAS_INSTALL") + " " + d.getVar("PACKAGE_INSTALL")
         d.setVar("PACKAGE_INSTALL", pinstall)
         d.setVar("LINGUAS_INSTALL", "")
@@ -136,28 +135,27 @@ python multilib_virtclass_handler_postkeyexp () {
 
     import oe.classextend
 
+    clsextend = oe.classextend.ClassExtender(variant, d)
+
     if bb.data.inherits_class('image', d):
         return
 
-    prefixes = (d.getVar("MULTILIB_VARIANTS") or "").split()
-    clsextend = oe.classextend.ClassExtender(variant, prefixes, d)
-
-    clsextend.set_filter("DEPENDS", deps=True)
-    clsextend.set_filter("PACKAGE_WRITE_DEPS", deps=False)
-
-    clsextend.set_filter("PROVIDES", deps=False)
+    clsextend.map_depends_variable("DEPENDS")
+    clsextend.map_depends_variable("PACKAGE_WRITE_DEPS")
+    clsextend.map_variable("PROVIDES")
 
     if bb.data.inherits_class('cross-canadian', d):
         return
 
+    clsextend.rename_packages()
     clsextend.rename_package_variables((d.getVar("PACKAGEVARS") or "").split())
 
     clsextend.map_packagevars()
-
-    clsextend.set_filter("INITSCRIPT_PACKAGES", deps=False)
-    clsextend.set_filter("USERADD_PACKAGES", deps=False)
-    clsextend.set_filter("SYSTEMD_PACKAGES", deps=False)
-    clsextend.set_filter("UPDATERCPN", deps=False)
+    clsextend.map_regexp_variable("PACKAGES_DYNAMIC")
+    clsextend.map_variable("INITSCRIPT_PACKAGES")
+    clsextend.map_variable("USERADD_PACKAGES")
+    clsextend.map_variable("SYSTEMD_PACKAGES")
+    clsextend.map_variable("UPDATERCPN")
 
     reset_alternative_priority(d)
 }

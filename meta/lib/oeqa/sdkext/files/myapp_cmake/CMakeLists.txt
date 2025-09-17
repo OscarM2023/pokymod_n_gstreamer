@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.10)
+cmake_minimum_required (VERSION 2.6)
 project (myapp)
 # The version number.
 set (myapp_VERSION_MAJOR 1)

@@ -12,9 +12,9 @@ PROVIDES += "virtual/bootloader"
 
 PACKAGE_ARCH = "${MACHINE_ARCH}"
 
-DEPENDS += "bison-native flex-native lz4-native"
+DEPENDS += "bison-native flex-native"
 
-S = "${UNPACKDIR}/barebox-${PV}"
+S = "${WORKDIR}/barebox-${PV}"
 B = "${WORKDIR}/build"
 
 require conf/image-uefi.conf

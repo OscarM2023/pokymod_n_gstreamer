@@ -11,13 +11,23 @@ DEPENDS = "glib-2.0 glib-2.0-native libxml2 sqlite3 libpsl nghttp2"
 
 SHRT_VER = "${@d.getVar('PV').split('.')[0]}.${@d.getVar('PV').split('.')[1]}"
 
-SRC_URI = "${GNOME_MIRROR}/libsoup/${SHRT_VER}/libsoup-${PV}.tar.xz"
+SRC_URI = "${GNOME_MIRROR}/libsoup/${SHRT_VER}/libsoup-${PV}.tar.xz \
+           file://CVE-2025-32914.patch \
+           file://CVE-2025-4476.patch \
+           file://CVE-2025-32907-1.patch \
+           file://CVE-2025-32907-2.patch \
+           file://CVE-2025-32908-1.patch \
+           file://CVE-2025-32908-2.patch \
+           file://CVE-2025-4948.patch \
+           file://CVE-2025-4969.patch \
+           file://CVE-2025-4945.patch \
+"
 SRC_URI[sha256sum] = "6891765aac3e949017945c3eaebd8cc8216df772456dc9f460976fbdb7ada234"
 
 PROVIDES = "libsoup-3.0"
 CVE_PRODUCT = "libsoup"
 
-S = "${UNPACKDIR}/libsoup-${PV}"
+S = "${WORKDIR}/libsoup-${PV}"
 
 inherit meson gettext pkgconfig upstream-version-is-even gobject-introspection gi-docgen vala
 

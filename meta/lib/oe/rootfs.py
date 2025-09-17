@@ -362,12 +362,11 @@ class Rootfs(object, metaclass=ABCMeta):
 
             versioned_modules_dir = os.path.join(self.image_rootfs, modules_dir, kernel_ver)
 
-            if os.path.exists(versioned_modules_dir):
-                bb.note("Running depmodwrapper for %s ..." % versioned_modules_dir)
-                if self._exec_shell_cmd(['depmodwrapper', '-a', '-b', self.image_rootfs, kernel_ver, kernel_package_name]):
-                    bb.fatal("Kernel modules dependency generation failed")
-            else:
-                bb.note("Not running depmodwrapper for %s since directory does not exist" % versioned_modules_dir)
+            bb.utils.mkdirhier(versioned_modules_dir)
+
+            bb.note("Running depmodwrapper for %s ..." % versioned_modules_dir)
+            if self._exec_shell_cmd(['depmodwrapper', '-a', '-b', self.image_rootfs, kernel_ver, kernel_package_name]):
+                bb.fatal("Kernel modules dependency generation failed")
 
     """
     Create devfs:
@@ -428,3 +427,12 @@ def image_list_installed_packages(d, rootfs_dir=None):
     import importlib
     cls = importlib.import_module('oe.package_manager.' + img_type)
     return cls.PMPkgsList(d, rootfs_dir).list_pkgs()
+
+if __name__ == "__main__":
+    """
+    We should be able to run this as a standalone script, from outside bitbake
+    environment.
+    """
+    """
+    TBD
+    """

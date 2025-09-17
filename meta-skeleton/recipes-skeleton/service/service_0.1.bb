@@ -9,7 +9,8 @@ SRC_URI = "file://skeleton \
 	   file://COPYRIGHT \
 	   "
 
-S = "${UNPACKDIR}"
+S = "${WORKDIR}/sources"
+UNPACKDIR = "${S}"
 
 do_compile () {
 	${CC} ${CFLAGS} ${LDFLAGS} ${S}/skeleton_test.c -o ${B}/skeleton-test

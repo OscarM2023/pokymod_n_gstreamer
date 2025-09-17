@@ -71,14 +71,6 @@ inherit bash-completion meson pkgconfig useradd gettext perlnative systemd manpa
 # if using --disable-nls
 USE_NLS = "yes"
 
-# Helps tests for -msse fail on non-SSE architectures which is all non-x86
-TUNE_CCARGS:append:toolchain-clang = " -Werror=unused-command-line-argument"
-
-# mix_neon.c:179:9: error: invalid operand in inline asm: 'vld1.s32 ${0:h}, [$2]
-#      vld1.s32 ${1:h}, [$3] '
-TOOLCHAIN:armv7ve = "gcc"
-TOOLCHAIN:armv7a = "gcc"
-
 EXTRA_OEMESON = "\
 		-Dhal-compat=false \
 		-Dorc=disabled \
@@ -155,7 +147,7 @@ do_install:append() {
 }
 
 USERADD_PACKAGES = "pulseaudio-server"
-GROUPADD_PARAM:pulseaudio-server = "--system audio; --system pulse"
+GROUPADD_PARAM:pulseaudio-server = "--system pulse"
 USERADD_PARAM:pulseaudio-server = "--system --home /var/run/pulse \
                               --no-create-home --shell /bin/false \
                               --groups audio,pulse --gid pulse pulse"
@@ -290,5 +282,3 @@ RDEPENDS:pulseaudio-server += "\
 RDEPENDS:pulseaudio-server += "${@bb.utils.contains('DISTRO_FEATURES', 'x11', \
                                   bb.utils.contains('DISTRO_FEATURES', 'systemd', 'pulseaudio-module-systemd-login', 'pulseaudio-module-console-kit', d), \
                                   '', d)}"
-
-CVE_STATUS[CVE-2024-11586] = "not-applicable-platform: specific to Ubuntu 16.04"

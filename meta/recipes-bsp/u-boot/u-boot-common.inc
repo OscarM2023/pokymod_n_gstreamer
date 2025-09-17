@@ -12,28 +12,11 @@ PE = "1"
 
 # We use the revision in order to avoid having to fetch it from the
 # repo during parse
-SRCREV = "e37de002fac3895e8d0b60ae2015e17bb33e2b5b"
+SRCREV = "6d41f0a39d6423c8e57e92ebbe9f8c0333a63f72"
 
-SRC_URI = "\
-    git://source.denx.de/u-boot/u-boot.git;protocol=https;branch=master;tag=v${PV} \
-    file://0001-Makefile-add-dependency-from-lib-to-arch-ARCH-lib.patch \
-    file://0001-nxp-Prepare-macros-for-KVM-changes.patch \
-    file://0002-arm-io.h-Fix-io-accessors-for-KVM.patch \
-    file://0003-qemu-arm-Enable-virtualizable-IO-accessors.patch \
-"
+SRC_URI = "git://source.denx.de/u-boot/u-boot.git;protocol=https;branch=master"
 
-SRC_URI_RISCV = "\
-    file://u-boot-riscv-isa_clear.cfg \
-    ${@bb.utils.contains    ("TUNE_FEATURES", "a",      "file://u-boot-riscv-isa_a.cfg", "", d)} \
-    ${@bb.utils.contains    ("TUNE_FEATURES", "f",      "file://u-boot-riscv-isa_f.cfg", "", d)} \
-    ${@bb.utils.contains    ("TUNE_FEATURES", "d",      "file://u-boot-riscv-isa_d.cfg", "", d)} \
-    ${@bb.utils.contains_any("TUNE_FEATURES", "b zbb",  "file://u-boot-riscv-isa_zbb.cfg", "", d)} \
-    ${@bb.utils.contains    ("TUNE_FEATURES", "zicbom", "file://u-boot-riscv-isa_zicbom.cfg", "", d)} \
-    "
-
-SRC_URI:append:riscv32 = "${SRC_URI_RISCV}"
-SRC_URI:append:riscv64 = "${SRC_URI_RISCV}"
-
+S = "${WORKDIR}/git"
 B = "${WORKDIR}/build"
 
 inherit pkgconfig

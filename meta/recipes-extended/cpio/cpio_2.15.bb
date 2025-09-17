@@ -37,10 +37,10 @@ do_install () {
 }
 
 do_compile_ptest() {
-    # Forcibly regenerate this script so we get our --am-fmt option
-    rm -f ${S}/tests/testsuite
-    oe_runmake -C ${B}/tests/ testsuite
-
+    oe_runmake -C ${B}/gnu/ check
+    oe_runmake -C ${B}/lib/ check
+    oe_runmake -C ${B}/rmt/ check
+    oe_runmake -C ${B}/src/ check
     oe_runmake -C ${B}/tests/ genfile
 }
 
@@ -66,10 +66,10 @@ do_install_ptest_base:append() {
 }
 
 # The tests need to run as a non-root user, so pull in the ptest user
-DEPENDS:append:class-target = " ${@bb.utils.contains('PTEST_ENABLED', '1', 'ptest-runner', '', d)}"
-PACKAGE_WRITE_DEPS:append:class-target = " ${@bb.utils.contains('PTEST_ENABLED', '1', 'ptest-runner', '', d)}"
+DEPENDS:append:class-target = "${@bb.utils.contains('PTEST_ENABLED', '1', ' ptest-runner', '', d)}"
+PACKAGE_WRITE_DEPS += "ptest-runner"
 
-RDEPENDS:${PN}-ptest += "ptest-runner coreutils"
+RDEPENDS:${PN}-ptest += "ptest-runner"
 
 PACKAGES =+ "${PN}-rmt"
 

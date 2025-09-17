@@ -2,7 +2,8 @@ SUMMARY = "QEMU wrapper script"
 HOMEPAGE = "http://qemu.org"
 LICENSE = "MIT"
 
-S = "${UNPACKDIR}"
+S = "${WORKDIR}/sources"
+UNPACKDIR = "${S}"
 
 DEPENDS += "qemu-native"
 
@@ -25,6 +26,7 @@ if [ ${@bb.utils.contains('MACHINE_FEATURES', 'qemu-usermode', 'True', 'False', 
 	echo "qemuwrapper: qemu usermode is not supported"
 	exit 1
 fi
+
 
 $qemu_binary $qemu_options "\$@"
 EOF

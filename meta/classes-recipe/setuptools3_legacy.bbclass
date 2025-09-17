@@ -17,7 +17,6 @@
 inherit setuptools3-base
 
 B = "${WORKDIR}/build"
-do_configure[cleandirs] = "${B}"
 
 SETUPTOOLS_BUILD_ARGS ?= ""
 SETUPTOOLS_INSTALL_ARGS ?= "--root=${D} \
@@ -30,26 +29,13 @@ SETUPTOOLS_PYTHON:class-native = "nativepython3"
 
 SETUPTOOLS_SETUP_PATH ?= "${S}"
 
-python do_check_backend() {
-    import re
-    filename = d.expand("${SETUPTOOLS_SETUP_PATH}/pyproject.toml")
-    if os.path.exists(filename):
-        for line in open(filename):
-            match = re.match(r"build-backend\s*=\s*\W([\w.]+)\W", line)
-            if not match: continue
-
-            msg = f"inherits setuptools3_legacy but has pyproject.toml with {match[1]}, use the correct class"
-            if "pep517-backend" not in (d.getVar("INSANE_SKIP") or "").split():
-                oe.qa.handle_error("pep517-backend", msg, d)
-}
-addtask check_backend after do_patch before do_configure
-
 setuptools3_legacy_do_configure() {
     :
 }
 
 setuptools3_legacy_do_compile() {
         cd ${SETUPTOOLS_SETUP_PATH}
+        NO_FETCH_BUILD=1 \
         STAGING_INCDIR=${STAGING_INCDIR} \
         STAGING_LIBDIR=${STAGING_LIBDIR} \
         ${STAGING_BINDIR_NATIVE}/python3-native/python3 setup.py \

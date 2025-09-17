@@ -5,7 +5,8 @@ LICENSE = "MIT"
 
 USERADD_DEPENDS = "creategroup1"
 
-S = "${UNPACKDIR}"
+S = "${WORKDIR}/sources"
+UNPACKDIR = "${S}"
 
 inherit useradd allarch
 

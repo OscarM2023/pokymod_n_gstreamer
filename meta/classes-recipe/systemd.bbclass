@@ -29,7 +29,7 @@ python __anonymous() {
 }
 
 systemd_postinst() {
-if type systemctl >/dev/null 2>/dev/null; then
+if systemctl >/dev/null 2>/dev/null; then
 	OPTS=""
 
 	if [ -n "$D" ]; then
@@ -46,7 +46,7 @@ if type systemctl >/dev/null 2>/dev/null; then
 		done
 	fi
 
-	if [ -z "$D" ] && systemctl >/dev/null 2>/dev/null; then
+	if [ -z "$D" ]; then
 		# Reload only system service manager
 		# --global for daemon-reload is not supported: https://github.com/systemd/systemd/issues/19284
 		systemctl daemon-reload
@@ -66,8 +66,8 @@ fi
 }
 
 systemd_prerm() {
-if type systemctl >/dev/null 2>/dev/null; then
-	if [ -z "$D" ] && systemctl >/dev/null 2>/dev/null; then
+if systemctl >/dev/null 2>/dev/null; then
+	if [ -z "$D" ]; then
 		if [ -n "${@systemd_filter_services("${SYSTEMD_SERVICE_ESCAPED}", False, d)}" ]; then
 			systemctl stop ${@systemd_filter_services("${SYSTEMD_SERVICE_ESCAPED}", False, d)}
 			systemctl disable ${@systemd_filter_services("${SYSTEMD_SERVICE_ESCAPED}", False, d)}
@@ -249,12 +249,9 @@ python systemd_populate_packages() {
                     (servicename, instance, service_type) = re.split('[@.]', service)
                     template_services.setdefault(servicename + '@.' + service_type, []).append(instance)
                 else:
-                    template_services.setdefault(service, [])
+                    fd.write("%s %s\n" % (action,service))
             for template, instances in template_services.items():
-                if instances:
-                    fd.write("%s %s %s\n" % (action, template, ' '.join(instances)))
-                else:
-                    fd.write("%s %s\n" % (action, template))
+                fd.write("%s %s %s\n" % (action, template, ' '.join(instances)))
         d.appendVar("FILES:%s" % pkg, ' ' + oe.path.join(d.getVar("systemd_unitdir"), "%s-preset/98-%s.preset" % (prefix, pkg)))
 
     # Run all modifications once when creating package

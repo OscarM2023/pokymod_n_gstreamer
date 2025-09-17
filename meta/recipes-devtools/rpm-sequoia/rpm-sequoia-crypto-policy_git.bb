@@ -10,19 +10,20 @@ inherit allarch python3native
 
 SRC_URI = "git://gitlab.com/redhat-crypto/fedora-crypto-policies.git;protocol=https;branch=master"
 
-SRCREV = "ae1df75b1155294ebbd3c84fd206ffb55414c3ec"
+SRCREV = "032b418a6db842f0eab330eb5909e4604e888728"
 UPSTREAM_CHECK_COMMITS = "1"
+
+S = "${UNPACKDIR}/git"
 
 do_compile () {
 	# Remove most policy variants, leave DEFAULT.pol
 	# It speeds up the build and we only need DEFAULT/rpm-sequoia.
 	rm -f $(ls -1 policies/*.pol | grep -v DEFAULT.pol) || echo nothing to delete
 
-	# Don't validate openssh, gnutls and libreswan policy variants.
+	# Don't validate openssh and gnutls policy variants.
 	# Validation may fail and these variants are not needed.
 	export OLD_OPENSSH=1
 	export OLD_GNUTLS=1
-	export OLD_LIBRESWAN=1
 
 	make ASCIIDOC=echo XSLTPROC=echo
 }

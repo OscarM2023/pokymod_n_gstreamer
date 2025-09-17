@@ -7,7 +7,8 @@ LIC_FILES_CHKSUM = "file://${COREBASE}/meta/COPYING.MIT;md5=3da9cfbcb788c80a0384
 SRC_URI = "file://xorg.conf"
 SRC_URI:append:qemuall = " file://noblank.conf"
 
-S = "${UNPACKDIR}"
+S = "${WORKDIR}/sources"
+UNPACKDIR = "${S}"
 
 CONFFILES:${PN} = "${sysconfdir}/X11/xorg.conf"
 

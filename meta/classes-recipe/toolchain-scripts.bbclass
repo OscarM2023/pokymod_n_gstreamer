@@ -4,12 +4,12 @@
 # SPDX-License-Identifier: MIT
 #
 
-inherit toolchain-scripts-base siteinfo kernel-arch meson-routines
+inherit toolchain-scripts-base siteinfo kernel-arch
 
 # We want to be able to change the value of MULTIMACH_TARGET_SYS, because it
 # doesn't always match our expectations... but we default to the stock value
 REAL_MULTIMACH_TARGET_SYS ?= "${MULTIMACH_TARGET_SYS}"
-TARGET_CC_ARCH:append:toolchain-gcc:libc-musl = " -mmusl"
+TARGET_CC_ARCH:append:libc-musl = " -mmusl"
 
 # default debug prefix map isn't valid in the SDK
 DEBUG_PREFIX_MAP = ""
@@ -72,10 +72,6 @@ toolchain_create_sdk_env_script () {
 	echo 'export OECORE_TARGET_OS="${TARGET_OS}"' >>$script
 	echo 'export OECORE_TARGET_BITS="${@siteinfo_with_prefix(d, 'bit-')}"' >>$script
 	echo 'export OECORE_TARGET_ENDIAN="${@siteinfo_with_prefix(d, 'endian-')}"' >>$script
-	echo 'export OECORE_MESON_HOST_SYSTEM="${@meson_operating_system('TARGET_OS', d)}"' >>$script
-	echo 'export OECORE_MESON_HOST_CPU_FAMILY="${@meson_cpu_family('TARGET_ARCH', d)}"' >>$script
-	echo 'export OECORE_MESON_HOST_CPU="${TARGET_ARCH}"' >>$script
-	echo 'export OECORE_MESON_HOST_ENDIAN="${@meson_endian('TARGET', d)}"' >>$script
 
 	echo 'unset command_not_found_handle' >> $script
 
@@ -103,12 +99,6 @@ toolchain_create_tree_env_script () {
 	echo 'export OECORE_BASELIB="${baselib}"' >> $script
 	echo 'export OECORE_TARGET_ARCH="${TARGET_ARCH}"' >>$script
 	echo 'export OECORE_TARGET_OS="${TARGET_OS}"' >>$script
-	echo 'export OECORE_TARGET_BITS="${@siteinfo_with_prefix(d, 'bit-')}"' >>$script
-	echo 'export OECORE_TARGET_ENDIAN="${@siteinfo_with_prefix(d, 'endian-')}"' >>$script
-	echo 'export OECORE_MESON_HOST_SYSTEM="${@meson_operating_system('TARGET_OS', d)}"' >>$script
-	echo 'export OECORE_MESON_HOST_CPU_FAMILY="${@meson_cpu_family('TARGET_ARCH', d)}"' >>$script
-	echo 'export OECORE_MESON_HOST_CPU="${TARGET_ARCH}"' >>$script
-	echo 'export OECORE_MESON_HOST_ENDIAN="${@meson_endian('TARGET', d)}"' >>$script
 
 	toolchain_shared_env_script
 
@@ -238,11 +228,11 @@ toolchain_create_sdk_siteconfig () {
 python __anonymous () {
     import oe.classextend
     deps = ""
-    prefixes = (d.getVar("MULTILIB_VARIANTS") or "").split()
     for dep in (d.getVar('TOOLCHAIN_NEED_CONFIGSITE_CACHE') or "").split():
         deps += " %s:do_populate_sysroot" % dep
         for variant in (d.getVar('MULTILIB_VARIANTS') or "").split():
-            newdep = oe.classextend.add_suffix(dep, variant, prefixes)
+            clsextend = oe.classextend.ClassExtender(variant, d)
+            newdep = clsextend.extend_name(dep)
             deps += " %s:do_populate_sysroot" % newdep
     d.appendVarFlag('do_configure', 'depends', deps)
 }

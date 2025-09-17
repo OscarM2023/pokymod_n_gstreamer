@@ -21,12 +21,8 @@ do_install:append() {
 	install -d ${D}${libdir}
 	mv -v ${D}${prefix}/${TARGET_SYS}/lib/* ${D}${libdir}
 
-        # Remove original directory
-        rmdir -p --ignore-fail-on-non-empty ${D}${prefix}/${TARGET_SYS}/lib
-        # Remove empty include dir
-        rmdir ${D}/${prefix}/${TARGET_SYS}/include
-        rmdir ${D}/${prefix}/${TARGET_SYS}/
-
+	# Remove original directory
+	rmdir -p --ignore-fail-on-non-empty ${D}${prefix}/${TARGET_SYS}/lib
 }
 
 # Split packages correctly

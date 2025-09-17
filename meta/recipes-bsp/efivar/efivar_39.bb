@@ -12,6 +12,8 @@ SRC_URI = "git://github.com/rhinstaller/efivar.git;branch=main;protocol=https \
            "
 SRCREV = "c47820c37ac26286559ec004de07d48d05f3308c"
 
+S = "${WORKDIR}/git"
+
 inherit pkgconfig
 
 export CCLD_FOR_BUILD = "${BUILD_CCLD}"

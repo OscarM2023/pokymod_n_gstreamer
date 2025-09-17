@@ -7,8 +7,11 @@ LIC_FILES_CHKSUM = "file://COPYING;md5=12f884d2ae1ff87c09e5b7ccc2c4ca7e \
                     file://COPYING.LIB;md5=fb504b67c50331fc78734fed90fb0e09 \
                     file://src/main.c;beginline=1;endline=24;md5=0ad83ca0dc37ab08af448777c581e7ac"
 DEPENDS = "dbus glib-2.0"
+RDEPENDS:${PN} += "dbus"
 PROVIDES += "bluez-hcidump"
 RPROVIDES:${PN} += "bluez-hcidump"
+
+RCONFLICTS:${PN} = "bluez4"
 
 PACKAGECONFIG ??= "obex-profiles \
     readline \
@@ -65,9 +68,13 @@ SRC_URI = "${KERNELORG_MIRROR}/linux/bluetooth/bluez-${PV}.tar.xz \
            file://init \
            file://run-ptest \
            file://0001-tests-add-a-target-for-building-tests-without-runnin.patch \
-           file://0001-bluez5-disable-aics-tests.patch \
+           file://0001-test-gatt-Fix-hung-issue.patch \
+           file://0001-gdbus-define-MAX_INPUT-for-musl.patch \
+           file://0001-shared-ad-fix-std-c23-build-failure.patch \
+           file://0002-shared-shell-fix-std-c23-build-failure.patch \
+           file://0003-shared-gatt-helpers-fix-std-c23-build-failure.patch \
            "
-S = "${UNPACKDIR}/bluez-${PV}"
+S = "${WORKDIR}/bluez-${PV}"
 
 CVE_PRODUCT = "bluez"
 
@@ -81,7 +88,7 @@ EXTRA_OECONF = "\
   --without-zsh-completion-dir \
 "
 
-CFLAGS += "-DFIRMWARE_DIR='"${nonarch_base_libdir}/firmware"'"
+CFLAGS += "-DFIRMWARE_DIR=\\"${nonarch_base_libdir}/firmware\\""
 
 # bluez5 builds a large number of useful utilities but does not
 # install them.  Specify which ones we want put into ${PN}-noinst-tools.
@@ -106,6 +113,11 @@ do_install:append() {
 	for f in ${NOINST_TOOLS} ; do
 		install -m 755 ${B}/$f ${D}${bindir}
 	done
+
+	# Fix the /etc/bluetooth directory permissions when systemd is disabled
+	if ${@bb.utils.contains('PACKAGECONFIG', 'systemd', 'false', 'true', d)}; then
+		chmod 0755 ${D}${sysconfdir}/bluetooth
+	fi
 }
 
 PACKAGES =+ "${PN}-testtools ${PN}-obex ${PN}-noinst-tools"

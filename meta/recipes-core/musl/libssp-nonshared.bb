@@ -17,7 +17,8 @@ DEPENDS = "virtual/cross-binutils \
 
 do_configure[noexec] = "1"
 
-S = "${UNPACKDIR}"
+S = "${WORKDIR}/sources"
+UNPACKDIR = "${S}"
 
 do_compile() {
 	${CC} ${CPPFLAGS} ${CFLAGS} -fPIE -c stack_chk.c -o stack_chk.o

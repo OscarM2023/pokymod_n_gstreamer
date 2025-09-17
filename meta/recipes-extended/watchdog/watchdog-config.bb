@@ -13,7 +13,8 @@ SRC_URI = " \
     file://watchdog.conf \
 "
 
-S = "${UNPACKDIR}"
+S = "${WORKDIR}/sources"
+UNPACKDIR = "${S}"
 
 # The default value is 60 seconds when null.
 WATCHDOG_TIMEOUT ??= ""

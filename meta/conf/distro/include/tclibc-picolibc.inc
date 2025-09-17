@@ -37,3 +37,4 @@ TOOLCHAIN_NEED_CONFIGSITE_CACHE:remove = "zlib ncurses"
 SECURITY_CFLAGS:libc-picolibc:qemuriscv32 = "${SECURITY_NOPIE_CFLAGS}"
 SECURITY_CFLAGS:libc-picolibc:qemuriscv64 = "${SECURITY_NOPIE_CFLAGS}"
 
+

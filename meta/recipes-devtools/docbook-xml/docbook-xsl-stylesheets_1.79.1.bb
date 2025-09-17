@@ -7,13 +7,14 @@ SRC_URI = "${SOURCEFORGE_MIRROR}/docbook/docbook-xsl-${PV}.tar.bz2 \
            file://docbook-xsl-stylesheets-no-bashism-in-docbook-xsl-up.patch \
 "
 
+SRC_URI[md5sum] = "b48cbf929a2ad85e6672f710777ca7bc"
 SRC_URI[sha256sum] = "725f452e12b296956e8bfb876ccece71eeecdd14b94f667f3ed9091761a4a968"
 
 UPSTREAM_CHECK_URI = "http://sourceforge.net/projects/docbook/files/docbook-xsl/"
 # Reject versions ending in .0 as those are release candidates
 UPSTREAM_CHECK_REGEX = "/docbook-xsl/(?P<pver>(\d+[\.\-_]*)+(?!\.0)\.\d+)/"
 
-S = "${UNPACKDIR}/docbook-xsl-${PV}"
+S = "${WORKDIR}/docbook-xsl-${PV}"
 
 inherit allarch xmlcatalog
 

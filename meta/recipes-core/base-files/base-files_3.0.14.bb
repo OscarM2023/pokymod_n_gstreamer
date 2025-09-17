@@ -11,7 +11,6 @@ LIC_FILES_CHKSUM = "file://licenses/GPL-2;md5=94d55d512a9ba36caa9b7df079bae19f"
 
 SRC_URI = "file://rotation \
            file://nsswitch.conf \
-           file://nsswitch-resolved.conf \
            file://motd \
            file://hosts \
            file://host.conf \
@@ -24,8 +23,10 @@ SRC_URI = "file://rotation \
            file://share/dot.profile \
            file://licenses/GPL-2 \
            "
+SRC_URI:append:libc-glibc = "${@bb.utils.contains('DISTRO_FEATURES', 'systemd systemd-resolved', ' file://0001-add-nss-resolve-to-nsswitch.patch', '', d)}"
 
-S = "${UNPACKDIR}"
+S = "${WORKDIR}/sources"
+UNPACKDIR = "${S}"
 
 INHIBIT_DEFAULT_DEPS = "1"
 
@@ -123,7 +124,7 @@ do_install () {
 }
 
 do_install:append:libc-glibc () {
-	install -m 0644 ${S}/${@bb.utils.contains('DISTRO_FEATURES', 'systemd systemd-resolved', 'nsswitch-resolved.conf', 'nsswitch.conf', d)} ${D}${sysconfdir}/nsswitch.conf
+	install -m 0644 ${S}/nsswitch.conf ${D}${sysconfdir}/nsswitch.conf
 }
 
 DISTRO_VERSION[vardepsexclude] += "DATE"

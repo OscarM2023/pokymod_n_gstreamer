@@ -16,7 +16,6 @@ SECTION = "base"
 # Whether to split the suid apps into a seperate binary
 BUSYBOX_SPLIT_SUID ?= "1"
 
-CFLAGS:append:toolchain-clang = " -DBB_GLOBAL_CONST=''"
 export EXTRA_CFLAGS = "${CFLAGS}"
 export EXTRA_LDFLAGS = "${LDFLAGS}"
 
@@ -371,7 +370,6 @@ do_install_ptest () {
         rm -rf ${D}${PTEST_PATH}/testsuite/wget
 	sort ${B}/.config > ${D}${PTEST_PATH}/.config
 	ln -s ${base_bindir}/busybox   ${D}${PTEST_PATH}/busybox
-	sed -i -e 's|LIBC="<libc>"|LIBC=${TCLIBC}|g' ${D}${PTEST_PATH}/run-ptest
 }
 
 inherit update-alternatives

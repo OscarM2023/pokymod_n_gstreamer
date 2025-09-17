@@ -23,7 +23,7 @@ __config_regexp__  = re.compile( r"""
     (?P<var>[a-zA-Z0-9\-_+.${}/~:]*?)
     (\[(?P<flag>[a-zA-Z0-9\-_+.][a-zA-Z0-9\-_+.@/]*)\])?
 
-    (?P<whitespace>\s*) (
+    \s* (
         (?P<colon>:=) |
         (?P<lazyques>\?\?=) |
         (?P<ques>\?=) |
@@ -32,7 +32,7 @@ __config_regexp__  = re.compile( r"""
         (?P<predot>=\.) |
         (?P<postdot>\.=) |
         =
-    ) (?P<whitespace2>\s*)
+    ) \s*
 
     (?!'[^']*'[^']*'$)
     (?!\"[^\"]*\"[^\"]*\"$)
@@ -48,7 +48,7 @@ __export_regexp__ = re.compile( r"export\s+([a-zA-Z0-9\-_+.${}/~]+)$" )
 __unset_regexp__ = re.compile( r"unset\s+([a-zA-Z0-9\-_+.${}/~]+)$" )
 __unset_flag_regexp__ = re.compile( r"unset\s+([a-zA-Z0-9\-_+.${}/~]+)\[([a-zA-Z0-9\-_+.][a-zA-Z0-9\-_+.@]+)\]$" )
 __addpylib_regexp__      = re.compile(r"addpylib\s+(.+)\s+(.+)" )
-__addfragments_regexp__  = re.compile(r"addfragments\s+(.+)\s+(.+)\s+(.+)\s+(.+)" )
+__addfragments_regexp__  = re.compile(r"addfragments\s+(.+)\s+(.+)\s+(.+)" )
 
 def init(data):
     return
@@ -168,8 +168,6 @@ def feeder(lineno, s, fn, statements, baseconfig=False, conffile=True):
         groupd = m.groupdict()
         if groupd['var'] == "":
             raise ParseError("Empty variable name in assignment: '%s'" % s, fn, lineno);
-        if not groupd['whitespace'] or not groupd['whitespace2']:
-            logger.warning("%s:%s has a lack of whitespace around the assignment: '%s'" % (fn, lineno, s))
         ast.handleData(statements, fn, lineno, groupd)
         return
 

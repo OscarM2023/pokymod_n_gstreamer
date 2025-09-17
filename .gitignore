@@ -40,3 +40,17 @@ downloads/
 sstate-cache/
 toaster.sqlite
 .vscode/
+# --- META LAYERS ---
+# Ignora todas las meta- excepto las que queremos seguir
+meta-*/
+!meta-myapp/
+!meta-poky/
+!meta-yocto/
+!meta-yocto-bsp/
+!meta-yocto-imported/
+
+# --- BUILD ---
+# Ignora todo dentro de /build, excepto /build/conf y su contenido
+/build/*
+!/build/conf/
+!/build/conf/**

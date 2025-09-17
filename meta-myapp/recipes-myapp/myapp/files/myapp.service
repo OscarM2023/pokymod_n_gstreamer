@@ -1,0 +1,15 @@
+[Unit]
+Description=My Yocto Python App
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/myapp.py
+Restart=always
+RestartSec=2
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+

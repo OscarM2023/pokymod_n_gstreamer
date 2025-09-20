@@ -8,6 +8,10 @@ pstage/
 scripts/oe-git-proxy-socks
 sources/
 meta-*/
+
+# Capa personalizada, trackear!!!
+!meta-python-scripts/
+
 buildtools/
 !meta-skeleton
 !meta-selftest

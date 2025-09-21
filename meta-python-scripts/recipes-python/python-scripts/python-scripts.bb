@@ -19,11 +19,8 @@ do_install() {
     else
         echo "python-scripts-1.0 directory does not exist!"
     fi
-    echo "=================="
-    
-    # Install all .py files from the python-scripts-1.0 directory
+
     for pyfile in ${WORKDIR}/python-scripts-1.0/*.py; do
-        echo "Processing file: $pyfile"
         if [ -f "$pyfile" ]; then
             echo "Installing: $pyfile to ${D}${bindir}/"
             install -m 0755 "$pyfile" ${D}${bindir}/
@@ -32,15 +29,12 @@ do_install() {
         fi
     done
     
-    # Show final result
     echo "Final contents of ${D}${bindir}:"
     ls -la ${D}${bindir}/
 }
 
-# Include all files in bindir
 FILES:${PN} = "/usr /usr/bin ${bindir}/*"
 
-# Add runtime dependencies
 RDEPENDS:${PN} = " \
     python3-core \
     python3-numpy \

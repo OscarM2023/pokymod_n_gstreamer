@@ -1,4 +1,6 @@
 
-ADVERTENCIA: Esta distribución fue hecha por tres estudiantes del curso Taller de Sistemas Embebidos
-y está basada fuertemente basada en la distribución Poky.
+ADVERTENCIA: Esta distribucion fue creada por tres estudiantes del curso Taller de Sistemas Embebidos
+del Instituto Tecnologico de Costa Rica y esta fuertemente basada en la distribución Poky.
+Los archivos de prueba de python se encuentran en usr/bin/. 
+Si usas una VM, lee el instructivo para la facilitar la transaccion de archivos desde el host.
 

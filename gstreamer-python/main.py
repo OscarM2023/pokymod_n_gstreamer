@@ -78,7 +78,7 @@ def get_process_frame(pipeline):
 
 def main():
     # Default path
-    DEFAULT_PATH = "./inputs/video_test1.mp4"
+    DEFAULT_PATH = "./inputs/box_test.mp4"
     path = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_PATH
 
 

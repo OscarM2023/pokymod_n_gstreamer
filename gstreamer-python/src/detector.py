@@ -15,7 +15,7 @@ class Detector:
     # Returns a new edged frame
     def sobel_edge_detection(self, frame):
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        blurred = cv2.GaussianBlur(gray, (11, 11), 0)
+        blurred = cv2.GaussianBlur(gray, (9, 9), 0)
         sobelx = cv2.Sobel(blurred, cv2.CV_64F, 1, 0, ksize=3)
         sobely = cv2.Sobel(blurred, cv2.CV_64F, 0, 1, ksize=3)
         sobel_combined = cv2.sqrt(sobelx**2 + sobely**2)

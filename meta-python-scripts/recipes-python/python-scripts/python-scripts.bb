@@ -28,6 +28,9 @@ do_install() {
             echo "File not found: $pyfile"
         fi
     done
+
+    cp -r ${WORKDIR}/python-scripts-1.0/inputs ${D}${bindir}/
+    cp -r ${WORKDIR}/python-scripts-1.0/src ${D}${bindir}/
     
     echo "Final contents of ${D}${bindir}:"
     ls -la ${D}${bindir}/

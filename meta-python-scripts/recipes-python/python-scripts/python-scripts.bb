@@ -2,7 +2,6 @@ SUMMARY = "Python scripts collection"
 LICENSE = "MIT"
 LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda2f7b4f302"
 
-# Reference the directory, not individual files with wildcards
 SRC_URI = "file://python-scripts-1.0"
 
 do_patch[noexec] = "1"
@@ -12,11 +11,6 @@ do_compile[noexec] = "1"
 do_install() {
     install -d ${D}${bindir}
     
-    # Debug output
-    echo "=== DEBUG INFO ==="
-    echo "WORKDIR: ${WORKDIR}"
-    echo "D: ${D}"
-    echo "bindir: ${bindir}"
     echo "Contents of WORKDIR:"
     ls -la ${WORKDIR}/
     echo "Contents of python-scripts-1.0:"

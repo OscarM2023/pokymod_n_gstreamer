@@ -1,5 +1,4 @@
 
-WARNING: Poky is a reference Yocto Project distribution that should be used for
-testing and development purposes only. It is recommended that you create your
-own distribution for production use.
+ADVERTENCIA: Esta distribución fue hecha por tres estudiantes del curso Taller de Sistemas Embebidos
+y está basada fuertemente basada en la distribución Poky.
 

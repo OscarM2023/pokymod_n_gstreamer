@@ -11,6 +11,7 @@ meta-*/
 
 # Capa personalizada, trackear!!!
 !meta-python-scripts/
+!build/conf/
 
 buildtools/
 !meta-skeleton

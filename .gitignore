@@ -2,7 +2,7 @@
 *.pyo
 /*.patch
 /.repo/
-/build*/
+#build*/
 pyshtables.py
 pstage/
 scripts/oe-git-proxy-socks
@@ -11,7 +11,11 @@ meta-*/
 
 # Capa personalizada, trackear!!!
 !meta-python-scripts/
-!build/conf/
+/build/bitbake-cookerdaemon.log 
+/build/cache
+/build/downloads
+/build/sstate-cache
+/build/tmp
 
 buildtools/
 !meta-skeleton

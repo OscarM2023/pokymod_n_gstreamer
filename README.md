@@ -23,6 +23,16 @@ El sistema fue desarrollado por:
     - [OpenCV](yocto-project)
     - [Virtual-Box](virtual-box)
 3. [Estructura del proyecto](estructura-básica-del-proyecto)
+4. [Flujo de Trabajo](descripcion-del-flujo-trabajo)
+5. [Selección de Aplicacion](seleccion-de-aplicacion)
+6. [Lista de Dependencias](lista-de-dependencias)
+7. [Mapeo de Dependencias](mapeo-de-dependencias)
+8. [Receta de Yocto](receta-de-yocto)
+9. [Selección de Target Machine](seleccion-de-target-machine)
+10. [Proceso de Sintesis de Imagen](proceso-de-sintesis-de-imagen)
+11. [Instalación en VirtualBox](instalacion-en-virtualbox)
+
+## Instalación en VirtualBox
 
 ## Caracteristicas del Computador Host
 
@@ -93,3 +103,20 @@ Programa de Virtualización
         └── local.conf
 
 ```
+
+## Descripción del Flujo de Trabajo
+
+
+## Selección de Aplicación
+
+## Lista de Dependencias
+
+## Mapeo de Dependencias
+
+## Receta de Yocto
+
+## Selección de target machine
+
+## Proceso de Sintesis de Imagen
+
+## Instalación en VirtualBox

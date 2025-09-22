@@ -2,7 +2,9 @@
 
 > En este repositorio se realiza el desarrollo de un sistema operativo custom utilizando la herramienta de **Yocto Project**. Se utiliza **Gstreamer** con su sistema de pipelines para poder obtener componentes multimedia, además se utiliza **OpenCV** para realizar el procesamiento de las imagenes.
 
-
+<p align="center">
+  <img src="figures/box-detection.png" alt="Diagrama" width="400"/> 
+</p>
 
 ##  Desarrolladores
 El sistema fue desarrollado por:

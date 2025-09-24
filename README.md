@@ -24,10 +24,10 @@ El sistema fue desarrollado por:
     - [Virtual-Box](virtual-box)
 3. [Estructura del proyecto](estructura-básica-del-proyecto)
 4. [Flujo de Trabajo](descripcion-del-flujo-trabajo)
-5. [Selección de Aplicacion](seleccion-de-aplicacion)
-6. [Generación de Imagen](generacion-de-imagen-custom)
+5. [Generación de Imagen](generacion-de-imagen-custom)
     - [Proceso de Sintesis de Imagen](proceso-de-sintesis-de-imagen)
-7. [Instalación en VirtualBox](instalacion-en-virtualbox)
+6. [Instalación en VirtualBox](instalacion-en-virtualbox)
+7. [Referencias](referencias)
 
 ## Caracteristicas del Computador Host
 
@@ -149,9 +149,6 @@ flowchart TD
   end
 ```
 
-## Selección de Aplicación
-
-
 ## Generación de Imagen Custom
 
 Si el sistema host cumple con los requisitos se puede empezar por instalar los siguientes paquetes
@@ -174,7 +171,6 @@ Si bien el repositorio está hecho para poder generar la imagen immediatamente s
 En el directorio `meta-python-scripts` se encuentran la estructura de la aplicación, donde hay un directorio `recipes-python/python-scripts/files` donde se encuentran los scripts de python de los programas. Tambien se encuentra la receta `python-scripts.bb` que contiene lo siguiente
 
 ```bash
-
 SUMMARY = "Python scripts collection"
 LICENSE = "MIT"
 LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda2f7b4f302"
@@ -229,12 +225,14 @@ RDEPENDS:${PN} = " \
 "
 ```
 
-Que realiza lo siguiente:
-  -
-  -
-  -
-  -
-  -
+
+Realiza lo siguiente:
+  - `SRC_URI`: Indica adonde están las fuentes del paquete o programa
+  - `do_install()`:
+      - Se itera por cada archivo .py y los instala con permisos de ejecutable.
+      - Copia el archivo de video y el src que necesita el programa para ejecutarse correctamente.
+  - `FILES:${PN}`: Se incluyen los archivos que forman parte del paquete
+  - `RDEPENDS:${PN}`: Define los paquetes necesarios para que funcione el programa
 
 En el directorio de configuraciones de la construcción `build/conf/` hay dos archivos importantes el `bblayers.conf` el cual ya contiene las layers necesarias para que el sistema funcione, además para no agregarlas a mano.
 
@@ -354,3 +352,10 @@ bitbake core-image-minimal
 > lo que puede afectar el rendimiento del equipo durante la construcción.
 
 ## Instalación en VirtualBox
+
+## Referencias
+
+Paǵina de gstreamer: https://gstreamer.freedesktop.org/
+Yocto Project: https://docs.yoctoproject.org/
+OpenCV: https://docs.opencv.org/4.x/d9/df8/tutorial_root.html
+Detector Robusto de Contornos: https://github.com/KEG012/Project_openCV_Box_Detector

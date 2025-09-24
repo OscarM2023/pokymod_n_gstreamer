@@ -16,7 +16,7 @@ El sistema fue desarrollado por:
 ## Tabla de Contenidos
 
 
-1. [Caracteristicas del Host](#caracteristicas-del-computador-host)
+1. [Caracteristicas del Computador *Host* Utilizado para Pruebas](#caracteristicas-del-computador-host-utilizado-para-pruebas)
 2. [Herramientas de Desarrollo](herramientas-de-desarrollo-y-requisitos)
     - [Yocto-Project](yocto-project)
     - [Gstreamer](gstreamer)
@@ -29,14 +29,14 @@ El sistema fue desarrollado por:
 6. [Instalación en VirtualBox](instalacion-en-virtualbox)
 7. [Referencias](referencias)
 
-## Caracteristicas del Computador Host
+## Caracteristicas del Computador *Host* Utilizado para Pruebas
 
-- **Fabricante**:
-- **Modelo**:
-- **Sistema Operativo y Arquitectura**:
-- **CPU y Nucleos**:
-- **Capacidad RAM**:
-- **Almacenamiento**:
+- **Fabricante**: Lenovo
+- **Modelo**: 81YT (Lenovo Legion 7 15IMH05)
+- **Sistema Operativo y Arquitectura**: Arch Linux x86_64
+- **CPU y Nucleos**: Intel(R) Core(TM) i7-10750H (12) @ 5.00 GHz
+- **Capacidad RAM**: 16 GB
+- **Almacenamiento**: 512 GB
 
 ## Herramientas de Desarrollo y Requisitos
 
@@ -351,7 +351,49 @@ bitbake core-image-minimal
 > La construcción de la imagen con BitBake puede ser lenta y consumir muchos recursos,
 > lo que puede afectar el rendimiento del equipo durante la construcción.
 
-## Instalación en VirtualBox
+## Instalación en y configuración *VirtualBox*
+
+Una vez finalizada la construcción, la imagen debe encontrarse en el directorio **`build/tmp/deploy/images/qemux86-64`** con un nombre y extensión similares a los que se muestran a continuación:
+```
+core-image-minimal-qemux86-64.rootfs-20250921221056.wic.vmdk
+core-image-minimal-qemux86-64.rootfs.wic.vmdk
+```
+
+> [!CAUTION]
+> En el primer ejemplo mostrando anteriormente
+> el código de la imagen puede variar debido a que este depende de la fecha y otros factores de la construcción.
+> Nótese que cualquier de ambas imágenes se pueden utilizar para los pasos a continuación.
+
+Una vez obtenido la imagen de un disco de máquina virtual se puede proceder a crear una nueva máquina en *VirtualBox*, en la configuración general de la máquina se requiere seleccionar el sistema operativo `Linux` y la versión `Other Linux (64-bit)`.
+
+> [!CAUTION]
+> La imagen puede bootear con diversas configuraciones, pero algunas de estas pueden generar que no lo haga,
+> esto debido a que *VirtualBox* espera ciertas características de según su configuración. La configuración mostrada anteriormente asegura un booteo correcto.
+
+El único factor importante es la selección de la imagen como un disco duro del sistema en la configuración de almacenamiento y que este se encuentre en la lista de dispositivos de arranque en la configuración de sistema, permitiendo así inicializar el *kernel* de *Linux* directamente desde ahí.
+
+Las configuraciones de pantalla, audio, puertos seriales, usb, etc... son irrelevantes ya que la imagen no requiere directamente de estas y los recursos que requiere para operar son mínimos.
+
+### Localización de *scripts* de *python* y *shebanging*
+
+Para utilizar los *scripts* generados se debe tomar en cuenta que todos se encuentran en `/usr/bin` junto con un archivo de extensión `.mp4` que puede ser utilizado como input. Todos los *scripts* cuentan con una línea de *shebanging*, por lo que pueden recibir permisos de ejecución con el siguiente comando:
+```
+chmod +x <nombre-del-script>
+```
+
+### Servicios de *SSH*
+
+Para poder utilizar acceso remoto o servicios de red por *SSH* se requiere que la máquina virtual tenga al menos un adaptador de red, para utilizar únicamente comunicaciones entre el *host* y la máquina virtual basta con crear una *Host-only Network* en la pestaña de redes de *VirtualBox* y seleccionar dicha red en los adaptadores de la máquina, la dirección *IPv4* es estática y se muestra en la configuración de redes o se puede obtener listando los adaptadores adentro de la máquina con el siguiente comando:
+
+```
+ip addr show
+```
+
+Ya que la imagen no cuenta con un protocolo de sistema de ventanas como *X11* o *Wayland*, para mostrar ventanas por medio de **SSH** se puede utilizar el argumento '-X' que activa el reenvió de datos al *host*. Un ejemplo de dicho comando para accesar remotamente se encuentra a continuación.
+
+```
+ssh -X <usuario-en-maquina-virtual>@<dirección-ip>
+```
 
 ## Referencias
 

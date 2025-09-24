@@ -58,4 +58,15 @@
 **Lo hecho:** Validé el uso de GStreamer desde Python con PyGObject en la rama **walnascar**, confirmando que la importación y la inicialización se hacen sin errores.  
 **Problemas:** En un intento de prueba la importación falló porque faltaba un paquete de introspección; lo agregué a la imagen y volvió a funcionar.
 
+---
 
+## 22 de septiembre de 2025
+**Lo hecho**: Realicé la ronda final de pruebas en Oracle VirtualBox con la imagen generada en Yocto. Verifiqué arranque, el procesado de imagenes con aplicaciones y el uso de ssh.
+**Problemas**: No hubo problemas.
+
+---
+
+## 23 de septiembre de 2025
+
+**Lo hecho**: Actualicé el tutorial junto con mis compañeros. Reestructuramos el README para que siguiera la metodología que indicaba el instructivo y la rúbrica.
+**Problemas**: Conflictos menores con git por modificar el mismo archivo README.md.

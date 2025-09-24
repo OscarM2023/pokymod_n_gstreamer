@@ -356,6 +356,9 @@ bitbake core-image-minimal
 ## Referencias
 
 Paǵina de gstreamer: https://gstreamer.freedesktop.org/
+
 Yocto Project: https://docs.yoctoproject.org/
+
 OpenCV: https://docs.opencv.org/4.x/d9/df8/tutorial_root.html
+
 Detector Robusto de Contornos: https://github.com/KEG012/Project_openCV_Box_Detector

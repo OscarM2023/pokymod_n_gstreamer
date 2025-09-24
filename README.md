@@ -395,6 +395,30 @@ Ya que la imagen no cuenta con un protocolo de sistema de ventanas como *X11* o 
 ssh -X <usuario-en-maquina-virtual>@<dirección-ip>
 ```
 
+## Problemas encontrados y soluciones
+
+Durante el desarrollo del sistema se presentaron algunos inconvenientes que requirieron ajustes adicionales:
+
+- **Cadena de dependencias en Python**:  
+  Al integrar los *scripts* de Python dentro de la receta, fue necesario resolver la cadena de dependencias relacionadas con módulos como `numpy`, `opencv`, `pygobject` y otros que no estaban disponibles en la capa base.  
+  **Solución**: se agregaron explícitamente en la receta, asegurando que durante la construcción de la imagen se incluyeran todos los paquetes necesarios para la ejecución de los *scripts*.
+
+- **Visualización de imágenes sin aumentar el tamaño de la imagen Yocto**:  
+  Mostrar los resultados del procesamiento de contornos implicaba integrar librerías de *display*, lo cual podía inflar significativamente el tamaño de la imagen generada.  
+  **Solución**: en lugar de integrar un entorno gráfico completo, se optó por usar la capacidad de reenvío gráfico por **SSH con X11 forwarding** (`ssh -X`). Esto permitió mantener la imagen ligera y, al mismo tiempo, habilitar la visualización remota de las ventanas generadas por OpenCV.
+
+---
+
+## Conclusiones y recomendaciones
+
+La construcción de una imagen personalizada en Yocto permitió integrar de forma ordenada los componentes de **Gstreamer** y **OpenCV** junto con los *scripts* de Python para detección de cajas. Aunque surgieron retos en la gestión de dependencias y en la forma de visualizar resultados, estos se resolvieron con estrategias que priorizaron la compatibilidad, el uso de espacio en memoria y el bajo consumo de recursos.  
+
+El sistema final demuestra la flexibilidad de Yocto para crear distribuciones a la medida, permitiendo que aplicaciones de visión por computadora puedan ejecutarse en entornos optimizados y con recursos limitados, sin sacrificar funcionalidades críticas como la visualización o la capacidad de prueba en entornos virtualizados.
+
+Se recomienda realizar pruebas parciales y continuas, integrando las dependencias una por una, de manera que se puedan solucionar errores con más facilidad y orden.
+
+Mantener los *scripts* en una capa separada facilita la modularidad y el mantenimiento del proyecto a futuro.  Además, considerar alternativas como el reenvío gráfico por **SSH con X11** en lugar de integrar entornos gráficos completos ayuda a no aumentar demasiado el peso de la imagen.  
+
 ## Referencias
 
 Paǵina de gstreamer: https://gstreamer.freedesktop.org/
